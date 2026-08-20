@@ -7,7 +7,13 @@ import { motion } from "motion/react";
 import { useAuthStore } from "@/store/auth-store";
 import { useCartStore, cartSubtotal } from "@/store/cart-store";
 import { useProductCacheStore } from "@/store/product-cache-store";
-import { createOrder, createGuestOrder, type PaymentMethod } from "@/lib/api";
+import {
+  createOrder,
+  createGuestOrder,
+  validateDiscountCode,
+  type PaymentMethod,
+  type DiscountPreview,
+} from "@/lib/api";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -44,6 +50,11 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountPreview | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [applyingPromo, setApplyingPromo] = useState(false);
+
   const cartItems = lines
     .map((line) => ({ line, product: products.find((p) => p.id === line.productId) }))
     .filter(
@@ -51,6 +62,29 @@ export default function CheckoutPage() {
         Boolean(entry.product)
     );
   const subtotal = cartSubtotal(lines, products);
+  const total = appliedDiscount ? appliedDiscount.total : subtotal;
+
+  async function handleApplyPromo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!promoCode.trim()) return;
+    setPromoError(null);
+    setApplyingPromo(true);
+    try {
+      const preview = await validateDiscountCode(promoCode.trim(), subtotal);
+      setAppliedDiscount(preview);
+    } catch (err) {
+      setAppliedDiscount(null);
+      setPromoError(err instanceof Error ? err.message : "Couldn't apply that code");
+    } finally {
+      setApplyingPromo(false);
+    }
+  }
+
+  function handleRemovePromo() {
+    setAppliedDiscount(null);
+    setPromoCode("");
+    setPromoError(null);
+  }
 
   async function handlePlaceOrder(e: React.FormEvent) {
     e.preventDefault();
@@ -73,11 +107,20 @@ export default function CheckoutPage() {
         postalCode: postalCode || undefined,
         phone,
       };
+      const discountCode = appliedDiscount?.code;
 
       const { payment } =
         isLoggedIn && token
-          ? await createOrder(token, { items, shippingAddress, paymentMethod })
-          : await createGuestOrder({ items, shippingAddress, paymentMethod, email, firstName, lastName });
+          ? await createOrder(token, { items, shippingAddress, paymentMethod, discountCode })
+          : await createGuestOrder({
+              items,
+              shippingAddress,
+              paymentMethod,
+              email,
+              firstName,
+              lastName,
+              discountCode,
+            });
 
       window.location.href = payment.redirectUrl;
     } catch (err) {
@@ -249,7 +292,7 @@ export default function CheckoutPage() {
             disabled={submitting}
             className="rounded-full bg-plum py-3.5 text-sm font-medium text-white transition-colors hover:bg-plum-deep disabled:opacity-60"
           >
-            {submitting ? "Placing order…" : `Place order — ${formatLKR(subtotal)}`}
+            {submitting ? "Placing order…" : `Place order — ${formatLKR(total)}`}
           </button>
         </form>
 
@@ -268,9 +311,55 @@ export default function CheckoutPage() {
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm font-medium">
+          <div className="mt-4 border-t border-line pt-4">
+            {appliedDiscount ? (
+              <div className="flex items-center justify-between rounded-lg bg-cream px-3 py-2 text-sm">
+                <span className="text-ink">
+                  <span className="font-medium">{appliedDiscount.code}</span> applied
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemovePromo}
+                  className="text-xs font-medium text-plum underline underline-offset-4"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Promo code"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-line-strong bg-paper-raised px-3 py-2 text-sm text-ink focus:border-plum focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyPromo}
+                  disabled={applyingPromo || !promoCode.trim()}
+                  className="shrink-0 rounded-lg border border-line-strong px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:border-plum disabled:opacity-60"
+                >
+                  {applyingPromo ? "Checking…" : "Apply"}
+                </button>
+              </div>
+            )}
+            {promoError && <p className="mt-1.5 text-xs text-rose">{promoError}</p>}
+          </div>
+
+          <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm">
             <span className="text-ink-soft">Subtotal</span>
             <span className="tabular-nums text-ink">{formatLKR(subtotal)}</span>
+          </div>
+          {appliedDiscount && (
+            <div className="mt-1.5 flex justify-between text-sm">
+              <span className="text-ink-soft">Discount</span>
+              <span className="tabular-nums text-success">&minus;{formatLKR(appliedDiscount.discountAmount)}</span>
+            </div>
+          )}
+          <div className="mt-1.5 flex justify-between text-sm font-medium">
+            <span className="text-ink-soft">Total</span>
+            <span className="tabular-nums text-ink">{formatLKR(total)}</span>
           </div>
         </aside>
       </div>

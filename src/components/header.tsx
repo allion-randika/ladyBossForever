@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Heart, ShoppingBag, Menu, X, Search, User } from "lucide-react";
 import { CATEGORIES } from "@/lib/categories";
@@ -109,73 +110,78 @@ export function Header() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 lg:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="absolute inset-0 bg-ink/40"
-              onClick={() => setMenuOpen(false)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            />
-            <motion.div
-              className="absolute inset-y-0 left-0 flex w-72 flex-col bg-paper-raised p-6"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                className="-ml-2 mb-6 flex h-9 w-9 items-center justify-center rounded-full text-ink"
-                aria-label="Close menu"
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                className="fixed inset-0 z-50 lg:hidden"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
               >
-                <X className="h-5 w-5" strokeWidth={1.75} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setSearchOpen(true);
-                }}
-                className="mb-4 flex items-center gap-2 rounded-lg px-2 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream hover:text-plum"
-              >
-                <Search className="h-4 w-4" strokeWidth={1.75} />
-                Search
-              </button>
-              <nav className="flex flex-col gap-1">
-                {CATEGORIES.map((c) => (
-                  <Link
-                    key={c.slug}
-                    href={`/shop?category=${c.slug}`}
+                <motion.div
+                  className="absolute inset-0 bg-ink/40"
+                  onClick={() => setMenuOpen(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+                <motion.div
+                  className="absolute inset-y-0 left-0 flex w-72 flex-col bg-paper-raised p-6"
+                  initial={{ x: "-100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "-100%" }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <button
+                    type="button"
                     onClick={() => setMenuOpen(false)}
-                    className="rounded-lg px-2 py-2.5 font-display text-lg text-ink transition-colors hover:bg-cream"
+                    className="-ml-2 mb-6 flex h-9 w-9 items-center justify-center rounded-full text-ink"
+                    aria-label="Close menu"
                   >
-                    {c.label}
+                    <X className="h-5 w-5" strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setSearchOpen(true);
+                    }}
+                    className="mb-4 flex items-center gap-2 rounded-lg px-2 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream hover:text-plum"
+                  >
+                    <Search className="h-4 w-4" strokeWidth={1.75} />
+                    Search
+                  </button>
+                  <nav className="flex flex-col gap-1">
+                    {CATEGORIES.map((c) => (
+                      <Link
+                        key={c.slug}
+                        href={`/shop?category=${c.slug}`}
+                        onClick={() => setMenuOpen(false)}
+                        className="rounded-lg px-2 py-2.5 font-display text-lg text-ink transition-colors hover:bg-cream"
+                      >
+                        {c.label}
+                      </Link>
+                    ))}
+                  </nav>
+                  <Link
+                    href={isLoggedIn ? "/account" : "/account/login"}
+                    onClick={() => setMenuOpen(false)}
+                    className="mt-4 flex items-center gap-2 rounded-lg px-2 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream hover:text-plum"
+                  >
+                    <User className="h-4 w-4" strokeWidth={1.75} />
+                    {isLoggedIn ? "My account" : "Sign in"}
                   </Link>
-                ))}
-              </nav>
-              <Link
-                href={isLoggedIn ? "/account" : "/account/login"}
-                onClick={() => setMenuOpen(false)}
-                className="mt-4 flex items-center gap-2 rounded-lg px-2 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream hover:text-plum"
-              >
-                <User className="h-4 w-4" strokeWidth={1.75} />
-                {isLoggedIn ? "My account" : "Sign in"}
-              </Link>
-            </motion.div>
-          </motion.div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
 
-      <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      {typeof document !== "undefined" &&
+        createPortal(<SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />, document.body)}
     </header>
   );
 }

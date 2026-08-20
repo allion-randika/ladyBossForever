@@ -110,7 +110,14 @@ export default function AccountPage() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-sm font-medium tabular-nums text-ink">Total {formatLKR(order.total)}</p>
+              {order.discount && (
+                <p className="mt-3 text-xs text-success">
+                  {order.discount.code} applied &mdash; &minus;{formatLKR(order.discountAmount)}
+                </p>
+              )}
+              <p className={cn("text-sm font-medium tabular-nums text-ink", order.discount ? "mt-1" : "mt-3")}>
+                Total {formatLKR(order.total)}
+              </p>
             </li>
           ))}
         </ul>

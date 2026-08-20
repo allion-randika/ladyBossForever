@@ -142,6 +142,7 @@ export interface CreateOrderInput {
   items: { productId: string; variantId: string; qty: number }[];
   shippingAddress: ShippingAddressInput;
   paymentMethod: PaymentMethod;
+  discountCode?: string;
 }
 
 export interface OrderItemSummary {
@@ -157,9 +158,23 @@ export interface OrderSummary {
   status: "PENDING" | "PAID" | "FULFILLED" | "CANCELLED" | "REFUNDED";
   paymentMethod: PaymentMethod;
   subtotal: number;
+  discountAmount: number;
   total: number;
   createdAt: string;
   items: OrderItemSummary[];
+  discount: { code: string; type: "PERCENTAGE" | "FIXED"; value: number } | null;
+}
+
+export interface DiscountPreview {
+  code: string;
+  type: "PERCENTAGE" | "FIXED";
+  value: number;
+  discountAmount: number;
+  total: number;
+}
+
+export function validateDiscountCode(code: string, subtotal: number): Promise<DiscountPreview> {
+  return postJson<DiscountPreview>("/discounts/validate", { code, subtotal });
 }
 
 export function createOrder(

@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lady Boss Forever
 
-## Getting Started
+A ground-up rebuild of ladybossforever.com: a Next.js storefront, a NestJS +
+PostgreSQL API, and (in later phases) an admin panel and business-management
+layer. See the platform modernization plan for full context on scope and
+phasing.
 
-First, run the development server:
+## Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+/               Next.js storefront (App Router, TypeScript, Tailwind, Motion)
+/api            NestJS API — Prisma/PostgreSQL, JWT auth, RBAC
+/docker-compose.yml   Local Postgres + Redis
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The storefront currently renders from static dummy data
+(`src/lib/products.ts`) so design work isn't blocked on the backend. Wiring
+it to the real API is in progress.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Requires Node 22+, Docker Desktop, and npm.
 
-## Learn More
+```bash
+# 1. Start Postgres + Redis
+docker compose up -d
 
-To learn more about Next.js, take a look at the following resources:
+# 2. API: install, migrate, seed, run
+cd api
+npm install
+cp .env.example .env      # if .env doesn't already exist
+npx prisma migrate dev
+npx prisma db seed
+npm run start:dev         # http://localhost:4000/api
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# 3. Storefront: install, run (separate terminal, from repo root)
+npm install
+npm run dev                # http://localhost:3000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Seeded accounts
 
-## Deploy on Vercel
+The seed script creates one admin account for testing the auth/RBAC system:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Admin:** `admin@ladybossforever.com` / `ChangeMe123!` (role: `SUPER_ADMIN`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Change or remove this before any real deployment.
+
+### API surface (so far)
+
+| Route | Notes |
+|---|---|
+| `GET /api/health` | Liveness check |
+| `GET /api/categories` | All categories |
+| `GET /api/products` | Filter by `?category=`, `?size=`, `?color=` |
+| `GET /api/products/:slug` | Single product with variants |
+| `POST /api/auth/register` | Customer signup |
+| `POST /api/auth/login` | Customer login |
+| `POST /api/auth/admin/login` | Staff login |
+| `GET /api/auth/me` | Requires `Authorization: Bearer <token>` |
+
+Staff routes are additionally gated with `@Roles(...)` — `SUPER_ADMIN` always
+passes; other roles (`INVENTORY_MANAGER`, `ORDER_MANAGER`, `ACCOUNTANT`,
+`MARKETING_MANAGER`) are checked against the route's requirement.
+
+## CI
+
+`.github/workflows/ci.yml` lints, builds, and tests both projects on every
+push/PR to `main` — the API job runs real migrations against a Postgres
+service container. This only actually runs once the repo is pushed to
+GitHub.

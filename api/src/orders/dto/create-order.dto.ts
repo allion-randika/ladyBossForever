@@ -54,6 +54,10 @@ export class CreateOrderDto {
 
   @IsEnum(PaymentMethod)
   paymentMethod!: PaymentMethod;
+
+  @IsOptional()
+  @IsString()
+  discountCode?: string;
 }
 
 export class CreateGuestOrderDto extends CreateOrderDto {

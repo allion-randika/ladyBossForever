@@ -48,6 +48,8 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  auditLogs AuditLog[]
+
   @@map("admin_users")
 }
 
@@ -202,6 +204,13 @@ model Order {
 
   paymentMethod PaymentMethod
 
+  discount       Discount? @relation(fields: [discountId], references: [id])
+  discountId     String?
+  // Snapshot of the LKR amount actually deducted at order time — the
+  // discount record's value/type can change later, but the order's own
+  // total must stay historically accurate.
+  discountAmount Int       @default(0)
+
   subtotal Int
   total    Int
 
@@ -211,6 +220,7 @@ model Order {
   updatedAt DateTime @updatedAt
 
   @@index([customerId])
+  @@index([discountId])
   @@map("orders")
 }
 
@@ -229,4 +239,54 @@ model OrderItem {
   unitPrice  Int
 
   @@map("order_items")
+}
+
+// ---------- Promotions ----------
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model Discount {
+  id   String @id @default(cuid())
+  code String @unique
+
+  type  DiscountType
+  // Percentage points (1-100) or a fixed LKR amount, depending on `type`.
+  value Int
+
+  minOrderAmount Int?
+  usageLimit     Int?
+  usageCount     Int  @default(0)
+
+  startsAt  DateTime?
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("discounts")
+}
+
+// ---------- Admin governance ----------
+
+model AuditLog {
+  id      String    @id @default(cuid())
+  admin   AdminUser @relation(fields: [adminId], references: [id])
+  adminId String
+
+  action     String // e.g. "product.update", "order.status_change"
+  targetType String // e.g. "Product", "Order"
+  targetId   String
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@map("audit_logs")
 }

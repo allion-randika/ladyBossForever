@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { OrderStatus, type Order } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
+import { DiscountsService } from '../discounts/discounts.service';
 import type {
   CreateGuestOrderDto,
   CreateOrderDto,
@@ -20,6 +21,7 @@ import type { PaymentMethod } from '@prisma/client';
 const ORDER_INCLUDE = {
   items: { include: { product: true, variant: true } },
   shippingAddress: true,
+  discount: { select: { code: true, type: true, value: true } },
 } as const;
 
 export interface OrderRequester {
@@ -36,6 +38,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly payments: PaymentsService,
+    private readonly discounts: DiscountsService,
   ) {}
 
   async create(customerId: string, dto: CreateOrderDto) {
@@ -44,6 +47,8 @@ export class OrdersService {
       dto.items,
       dto.shippingAddress,
       dto.paymentMethod,
+      undefined,
+      dto.discountCode,
     );
     const payment = await this.payments.initiate(order, dto.paymentMethod);
     return { order, payment };
@@ -62,6 +67,7 @@ export class OrdersService {
       dto.shippingAddress,
       dto.paymentMethod,
       guestToken,
+      dto.discountCode,
     );
     const payment = await this.payments.initiate(order, dto.paymentMethod);
     // Guests have no session — the confirm/lookup steps authenticate via
@@ -75,6 +81,31 @@ export class OrdersService {
       where: { customerId },
       include: ORDER_INCLUDE,
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findAllAdmin(status?: OrderStatus) {
+    return this.prisma.order.findMany({
+      where: status ? { status } : undefined,
+      include: {
+        ...ORDER_INCLUDE,
+        customer: {
+          select: { id: true, email: true, firstName: true, lastName: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateStatus(orderId: string, status: OrderStatus) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { status },
+      include: ORDER_INCLUDE,
     });
   }
 
@@ -150,6 +181,7 @@ export class OrdersService {
     shippingAddress: ShippingAddressInput,
     paymentMethod: PaymentMethod,
     guestToken?: string,
+    discountCode?: string,
   ) {
     const variantIds = items.map((i) => i.variantId);
     const variants = await this.prisma.productVariant.findMany({
@@ -184,6 +216,14 @@ export class OrdersService {
       return sum + variant.product.price * item.qty;
     }, 0);
 
+    // Re-validated here against the server-computed subtotal — never trust
+    // a discount amount computed on the client.
+    const application = discountCode
+      ? await this.discounts.validate(discountCode, subtotal)
+      : null;
+    const discountAmount = application?.discountAmount ?? 0;
+    const total = subtotal - discountAmount;
+
     return this.prisma.$transaction(async (tx) => {
       const address = await tx.address.create({
         data: { customerId, ...shippingAddress },
@@ -196,7 +236,9 @@ export class OrdersService {
           shippingAddressId: address.id,
           paymentMethod,
           subtotal,
-          total: subtotal,
+          total,
+          discountId: application?.discount.id,
+          discountAmount,
           guestToken,
           items: {
             create: items.map((item) => {
@@ -212,6 +254,13 @@ export class OrdersService {
         },
         include: ORDER_INCLUDE,
       });
+
+      if (application) {
+        await tx.discount.update({
+          where: { id: application.discount.id },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
 
       for (const item of items) {
         await tx.productVariant.update({

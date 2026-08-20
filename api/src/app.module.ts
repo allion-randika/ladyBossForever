@@ -8,6 +8,10 @@ import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { CartModule } from './cart/cart.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
+import { CustomersModule } from './customers/customers.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { DiscountsModule } from './discounts/discounts.module';
 
 @Module({
   imports: [
@@ -19,6 +23,10 @@ import { CartModule } from './cart/cart.module';
     OrdersModule,
     WishlistModule,
     CartModule,
+    AuditLogModule,
+    CustomersModule,
+    DashboardModule,
+    DiscountsModule,
   ],
   controllers: [AppController],
 })

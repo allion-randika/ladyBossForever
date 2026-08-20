@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Sibling NestJS API project — has its own eslint config and lint script.
+    "api/**",
   ]),
 ]);
 

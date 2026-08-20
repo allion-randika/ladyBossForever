@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+
+# Keep environment variables out of version control
+.env
+
+# Auto-fetched AI-agent skill docs (from `prisma init`) — regenerable,
+# not project source.
+.claude/skills
+.windsurf/skills
+.agents/skills
+skills-lock.json

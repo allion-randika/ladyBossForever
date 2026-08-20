@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Identity ----------
+
+enum AdminRole {
+  SUPER_ADMIN
+  INVENTORY_MANAGER
+  ORDER_MANAGER
+  ACCOUNTANT
+  MARKETING_MANAGER
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  // Null for a customer created by guest checkout — they have no password
+  // and can't log in until they register with this email.
+  passwordHash String?
+  firstName    String
+  lastName     String
+  phone        String?
+  birthday     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addresses Address[]
+  orders    Order[]
+  wishlist  WishlistItem[]
+  cartItems CartItem[]
+
+  @@map("customers")
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         AdminRole @default(ORDER_MANAGER)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admin_users")
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  label       String  @default("Home")
+  line1       String
+  line2       String?
+  city        String
+  postalCode  String?
+  phone       String
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("addresses")
+}
+
+// ---------- Catalog ----------
+
+model Category {
+  id    String @id @default(cuid())
+  slug  String @unique
+  label String
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  details     String[]
+
+  price           Int // stored in minor-less LKR (whole rupees)
+  compareAtPrice  Int?
+
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+
+  isNew        Boolean @default(false)
+  isBestseller Boolean @default(false)
+  isOnSale     Boolean @default(false)
+
+  variants     ProductVariant[]
+  wishlistedBy WishlistItem[]
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  size  String
+  color String
+  colorHex String
+
+  stock         Int @default(0)
+  reservedStock Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@unique([productId, size, color])
+  @@map("product_variants")
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@map("wishlist_items")
+}
+
+model CartItem {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+
+  // Denormalized rather than a variantId FK: the client already only knows
+  // size/color at add-to-cart time (variant lookup happens at checkout),
+  // so this mirrors that instead of forcing an extra resolution step here.
+  size  String
+  color String
+  qty   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([customerId, productId, size, color])
+  @@map("cart_items")
+}
+
+// ---------- Orders ----------
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD_PAYHERE
+  PAYZY
+  MINTPAY
+  KOKO
+}
+
+model Order {
+  id     String      @id @default(cuid())
+  number String      @unique @default(cuid())
+  status OrderStatus @default(PENDING)
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+
+  shippingAddress   Address @relation(fields: [shippingAddressId], references: [id])
+  shippingAddressId String
+
+  // Set only for guest checkout orders. Lets the guest (who has no login
+  // session) view and confirm payment on this one order via a link/query
+  // param, without exposing any other order on the account.
+  guestToken String? @unique
+
+  paymentMethod PaymentMethod
+
+  subtotal Int
+  total    Int
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  variantId String
+
+  qty        Int
+  unitPrice  Int
+
+  @@map("order_items")
+}

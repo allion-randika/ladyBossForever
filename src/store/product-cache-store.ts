@@ -3,6 +3,7 @@ import type { Product } from "@/lib/types";
 import { fetchProducts } from "@/lib/api";
 import { useCartStore } from "./cart-store";
 import { useWishlistStore } from "./wishlist-store";
+import { useCompareStore } from "./compare-store";
 
 interface ProductCacheState {
   products: Product[];
@@ -30,6 +31,7 @@ export const useProductCacheStore = create<ProductCacheState>((set, get) => ({
         const validIds = new Set(products.map((p) => p.id));
         useCartStore.getState().pruneToValidProducts(validIds);
         useWishlistStore.getState().pruneToValidProducts(validIds);
+        useCompareStore.getState().pruneToValidProducts(validIds);
       })
       .catch(() => set({ status: "error" }));
   },

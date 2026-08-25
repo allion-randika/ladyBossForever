@@ -11,8 +11,10 @@ import {
   createOrder,
   createGuestOrder,
   validateDiscountCode,
+  fetchGiftCardBalance,
   type PaymentMethod,
   type DiscountPreview,
+  type GiftCardBalance,
 } from "@/lib/api";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -55,6 +57,11 @@ export default function CheckoutPage() {
   const [promoError, setPromoError] = useState<string | null>(null);
   const [applyingPromo, setApplyingPromo] = useState(false);
 
+  const [giftCardCode, setGiftCardCode] = useState("");
+  const [appliedGiftCard, setAppliedGiftCard] = useState<GiftCardBalance | null>(null);
+  const [giftCardError, setGiftCardError] = useState<string | null>(null);
+  const [applyingGiftCard, setApplyingGiftCard] = useState(false);
+
   const cartItems = lines
     .map((line) => ({ line, product: products.find((p) => p.id === line.productId) }))
     .filter(
@@ -62,7 +69,9 @@ export default function CheckoutPage() {
         Boolean(entry.product)
     );
   const subtotal = cartSubtotal(lines, products);
-  const total = appliedDiscount ? appliedDiscount.total : subtotal;
+  const afterDiscount = appliedDiscount ? appliedDiscount.total : subtotal;
+  const giftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.balance, afterDiscount) : 0;
+  const total = afterDiscount - giftCardAmount;
 
   async function handleApplyPromo(e: React.FormEvent) {
     e.preventDefault();
@@ -84,6 +93,31 @@ export default function CheckoutPage() {
     setAppliedDiscount(null);
     setPromoCode("");
     setPromoError(null);
+  }
+
+  async function handleApplyGiftCard(e: React.FormEvent) {
+    e.preventDefault();
+    if (!giftCardCode.trim()) return;
+    setGiftCardError(null);
+    setApplyingGiftCard(true);
+    try {
+      const balance = await fetchGiftCardBalance(giftCardCode.trim());
+      if (balance.status !== "ACTIVE" || balance.balance <= 0) {
+        throw new Error("This gift card has no remaining balance");
+      }
+      setAppliedGiftCard(balance);
+    } catch (err) {
+      setAppliedGiftCard(null);
+      setGiftCardError(err instanceof Error ? err.message : "Couldn't apply that gift card");
+    } finally {
+      setApplyingGiftCard(false);
+    }
+  }
+
+  function handleRemoveGiftCard() {
+    setAppliedGiftCard(null);
+    setGiftCardCode("");
+    setGiftCardError(null);
   }
 
   async function handlePlaceOrder(e: React.FormEvent) {
@@ -108,10 +142,17 @@ export default function CheckoutPage() {
         phone,
       };
       const discountCode = appliedDiscount?.code;
+      const appliedGiftCardCode = appliedGiftCard?.code;
 
       const { payment } =
         isLoggedIn && token
-          ? await createOrder(token, { items, shippingAddress, paymentMethod, discountCode })
+          ? await createOrder(token, {
+              items,
+              shippingAddress,
+              paymentMethod,
+              discountCode,
+              giftCardCode: appliedGiftCardCode,
+            })
           : await createGuestOrder({
               items,
               shippingAddress,
@@ -120,6 +161,7 @@ export default function CheckoutPage() {
               firstName,
               lastName,
               discountCode,
+              giftCardCode: appliedGiftCardCode,
             });
 
       window.location.href = payment.redirectUrl;
@@ -347,6 +389,43 @@ export default function CheckoutPage() {
             {promoError && <p className="mt-1.5 text-xs text-rose">{promoError}</p>}
           </div>
 
+          <div className="mt-3 border-t border-line pt-3">
+            {appliedGiftCard ? (
+              <div className="flex items-center justify-between rounded-lg bg-cream px-3 py-2 text-sm">
+                <span className="text-ink">
+                  <span className="font-medium">{appliedGiftCard.code}</span> applied
+                  <span className="block text-xs text-ink-faint">{formatLKR(appliedGiftCard.balance)} available</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemoveGiftCard}
+                  className="text-xs font-medium text-plum underline underline-offset-4"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Gift card code"
+                  value={giftCardCode}
+                  onChange={(e) => setGiftCardCode(e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-line-strong bg-paper-raised px-3 py-2 text-sm text-ink focus:border-plum focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyGiftCard}
+                  disabled={applyingGiftCard || !giftCardCode.trim()}
+                  className="shrink-0 rounded-lg border border-line-strong px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:border-plum disabled:opacity-60"
+                >
+                  {applyingGiftCard ? "Checking…" : "Apply"}
+                </button>
+              </div>
+            )}
+            {giftCardError && <p className="mt-1.5 text-xs text-rose">{giftCardError}</p>}
+          </div>
+
           <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm">
             <span className="text-ink-soft">Subtotal</span>
             <span className="tabular-nums text-ink">{formatLKR(subtotal)}</span>
@@ -355,6 +434,12 @@ export default function CheckoutPage() {
             <div className="mt-1.5 flex justify-between text-sm">
               <span className="text-ink-soft">Discount</span>
               <span className="tabular-nums text-success">&minus;{formatLKR(appliedDiscount.discountAmount)}</span>
+            </div>
+          )}
+          {giftCardAmount > 0 && (
+            <div className="mt-1.5 flex justify-between text-sm">
+              <span className="text-ink-soft">Gift card</span>
+              <span className="tabular-nums text-success">&minus;{formatLKR(giftCardAmount)}</span>
             </div>
           )}
           <div className="mt-1.5 flex justify-between text-sm font-medium">

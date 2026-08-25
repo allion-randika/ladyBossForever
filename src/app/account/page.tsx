@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
-import { fetchMyOrders, type OrderSummary } from "@/lib/api";
+import { fetchMyOrders, fetchMyGiftCards, type OrderSummary, type GiftCard } from "@/lib/api";
 import { clearGuestVisibleData } from "@/lib/session-sync";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -33,6 +33,7 @@ export default function AccountPage() {
   const logout = useAuthStore((s) => s.logout);
 
   const [orders, setOrders] = useState<OrderSummary[] | null>(null);
+  const [giftCards, setGiftCards] = useState<GiftCard[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,6 +45,9 @@ export default function AccountPage() {
     fetchMyOrders(token)
       .then(setOrders)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load orders"));
+    fetchMyGiftCards(token)
+      .then(setGiftCards)
+      .catch(() => setGiftCards([]));
   }, [hasHydrated, token, router]);
 
   if (!hasHydrated || !token) return null;
@@ -115,9 +119,47 @@ export default function AccountPage() {
                   {order.discount.code} applied &mdash; &minus;{formatLKR(order.discountAmount)}
                 </p>
               )}
-              <p className={cn("text-sm font-medium tabular-nums text-ink", order.discount ? "mt-1" : "mt-3")}>
+              {order.giftCard && (
+                <p className={cn("text-xs text-success", order.discount ? "mt-1" : "mt-3")}>
+                  {order.giftCard.code} applied &mdash; &minus;{formatLKR(order.giftCardAmount)}
+                </p>
+              )}
+              <p
+                className={cn(
+                  "text-sm font-medium tabular-nums text-ink",
+                  order.discount || order.giftCard ? "mt-1" : "mt-3"
+                )}
+              >
                 Total {formatLKR(order.total)}
               </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-10 flex items-baseline justify-between gap-4">
+        <h2 className="font-display text-xl text-ink">Gift cards</h2>
+        <Link href="/gift-cards" className="text-xs font-medium text-plum underline underline-offset-4">
+          Buy a gift card
+        </Link>
+      </div>
+
+      {giftCards === null && <p className="mt-4 text-ink-soft">Loading&hellip;</p>}
+
+      {giftCards?.length === 0 && <p className="mt-4 text-sm text-ink-faint">You haven&rsquo;t bought any gift cards yet.</p>}
+
+      {giftCards && giftCards.length > 0 && (
+        <ul className="mt-4 flex flex-col gap-3">
+          {giftCards.map((card) => (
+            <li key={card.id} className="flex items-center justify-between rounded-2xl border border-line p-4">
+              <div>
+                <p className="font-mono text-sm text-ink">{card.code}</p>
+                <p className="text-xs text-ink-faint">For {card.recipientName || card.recipientEmail}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium tabular-nums text-ink">{formatLKR(card.balance)}</p>
+                <p className="text-xs text-ink-faint">of {formatLKR(card.initialBalance)}</p>
+              </div>
             </li>
           ))}
         </ul>

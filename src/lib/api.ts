@@ -143,6 +143,7 @@ export interface CreateOrderInput {
   shippingAddress: ShippingAddressInput;
   paymentMethod: PaymentMethod;
   discountCode?: string;
+  giftCardCode?: string;
 }
 
 export interface OrderItemSummary {
@@ -159,10 +160,12 @@ export interface OrderSummary {
   paymentMethod: PaymentMethod;
   subtotal: number;
   discountAmount: number;
+  giftCardAmount: number;
   total: number;
   createdAt: string;
   items: OrderItemSummary[];
   discount: { code: string; type: "PERCENTAGE" | "FIXED"; value: number } | null;
+  giftCard: { code: string } | null;
 }
 
 export interface DiscountPreview {
@@ -234,6 +237,68 @@ async function authFetch<T>(
     throw new Error(data?.message ?? `Request to ${path} failed with ${res.status}`);
   }
   return res.json() as Promise<T>;
+}
+
+// ---------- Gift cards ----------
+
+export interface GiftCardBalance {
+  code: string;
+  balance: number;
+  initialBalance: number;
+  status: "ACTIVE" | "REDEEMED" | "DISABLED";
+  expiresAt: string | null;
+}
+
+export interface GiftCard extends GiftCardBalance {
+  id: string;
+  recipientEmail: string;
+  recipientName: string | null;
+  message: string | null;
+  createdAt: string;
+}
+
+export function fetchGiftCardBalance(code: string): Promise<GiftCardBalance> {
+  return apiFetch<GiftCardBalance>(`/gift-cards/${encodeURIComponent(code)}`);
+}
+
+export function purchaseGiftCard(
+  token: string,
+  input: { amount: number; recipientEmail: string; recipientName?: string; message?: string }
+): Promise<GiftCard> {
+  return authFetch("/gift-cards/purchase", token, { method: "POST", body: input });
+}
+
+export function fetchMyGiftCards(token: string): Promise<GiftCard[]> {
+  return authFetch("/gift-cards/mine", token);
+}
+
+// ---------- Reviews ----------
+
+export interface Review {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  createdAt: string;
+  customer: { firstName: string; lastName: string };
+}
+
+export interface ProductReviews {
+  reviews: Review[];
+  averageRating: number;
+  count: number;
+}
+
+export function fetchProductReviews(productId: string): Promise<ProductReviews> {
+  return apiFetch<ProductReviews>(`/reviews/product/${productId}`);
+}
+
+export function submitReview(
+  token: string,
+  productId: string,
+  input: { rating: number; title?: string; body: string }
+): Promise<Review> {
+  return authFetch(`/reviews/product/${productId}`, token, { method: "POST", body: input });
 }
 
 // ---------- Wishlist (logged-in customers only — server is source of truth) ----------

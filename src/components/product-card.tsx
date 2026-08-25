@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Heart } from "lucide-react";
+import { Heart, GitCompare } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { ProductArt } from "@/components/product-art";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useWishlistStore } from "@/store/wishlist-store";
 import { useCartStore } from "@/store/cart-store";
+import { useCompareStore } from "@/store/compare-store";
 
 export function ProductCard({
   product,
@@ -22,6 +23,10 @@ export function ProductCard({
   const isWishlisted = wishlistHydrated && wishlisted;
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const addItem = useCartStore((s) => s.addItem);
+  const compareHydrated = useCompareStore((s) => s.hasHydrated);
+  const compared = useCompareStore((s) => s.has(product.id));
+  const isCompared = compareHydrated && compared;
+  const toggleCompare = useCompareStore((s) => s.toggle);
 
   const badge = product.badges[0];
 
@@ -50,26 +55,40 @@ export function ProductCard({
             </span>
           )}
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              toggleWishlist(product.id);
-            }}
-            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-            aria-pressed={isWishlisted}
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-paper-raised/90 text-ink backdrop-blur transition-transform hover:scale-110"
-          >
-            <motion.span
-              animate={isWishlisted ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-              transition={{ duration: 0.35 }}
+          <div className="absolute right-3 top-3 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleWishlist(product.id);
+              }}
+              aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              aria-pressed={isWishlisted}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-paper-raised/90 text-ink backdrop-blur transition-transform hover:scale-110"
             >
-              <Heart
-                className={cn("h-4 w-4", isWishlisted && "fill-rose text-rose")}
-                strokeWidth={1.75}
-              />
-            </motion.span>
-          </button>
+              <motion.span
+                animate={isWishlisted ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+                transition={{ duration: 0.35 }}
+              >
+                <Heart
+                  className={cn("h-4 w-4", isWishlisted && "fill-rose text-rose")}
+                  strokeWidth={1.75}
+                />
+              </motion.span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleCompare(product.id);
+              }}
+              aria-label={isCompared ? "Remove from compare" : "Add to compare"}
+              aria-pressed={isCompared}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-paper-raised/90 text-ink backdrop-blur transition-transform hover:scale-110"
+            >
+              <GitCompare className={cn("h-4 w-4", isCompared && "text-plum")} strokeWidth={1.75} />
+            </button>
+          </div>
 
           <div className="pointer-events-none absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
             <button

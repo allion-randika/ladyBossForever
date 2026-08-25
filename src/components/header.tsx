@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Heart, ShoppingBag, Menu, X, Search, User } from "lucide-react";
+import { Heart, ShoppingBag, Menu, X, Search, User, GitCompare } from "lucide-react";
 import { CATEGORIES } from "@/lib/categories";
 import { useCartStore, cartCount } from "@/store/cart-store";
 import { useWishlistStore } from "@/store/wishlist-store";
+import { useCompareStore } from "@/store/compare-store";
 import { useAuthStore } from "@/store/auth-store";
 import { SearchOverlay } from "@/components/search-overlay";
 
@@ -19,6 +20,8 @@ export function Header() {
   const toggleCart = useCartStore((s) => s.toggle);
   const wishlistHydrated = useWishlistStore((s) => s.hasHydrated);
   const wishlistIds = useWishlistStore((s) => s.ids);
+  const compareHydrated = useCompareStore((s) => s.hasHydrated);
+  const compareIds = useCompareStore((s) => s.ids);
   const loadCartFromServer = useCartStore((s) => s.loadFromServer);
   const loadWishlistFromServer = useWishlistStore((s) => s.loadFromServer);
   const authHydrated = useAuthStore((s) => s.hasHydrated);
@@ -29,6 +32,7 @@ export function Header() {
   // store finishes rehydrating would mismatch the server HTML.
   const isLoggedIn = authHydrated && Boolean(token);
   const wishlistCount = wishlistHydrated ? wishlistIds.length : 0;
+  const compareCount = compareHydrated ? compareIds.length : 0;
   const count = cartHydrated ? cartCount(lines) : 0;
 
   // A visitor who was already logged in before this page load (not someone
@@ -70,6 +74,12 @@ export function Header() {
               {c.label}
             </Link>
           ))}
+          <Link
+            href="/gift-cards"
+            className="text-[0.72rem] font-medium uppercase tracking-wider text-ink-soft transition-colors hover:text-plum"
+          >
+            Gift Cards
+          </Link>
         </nav>
 
         <div className="flex items-center gap-1">
@@ -87,6 +97,14 @@ export function Header() {
             aria-label="Account"
           >
             <User className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          </Link>
+          <Link
+            href="/compare"
+            className="relative hidden h-9 w-9 items-center justify-center rounded-full text-ink transition-colors hover:text-plum sm:flex"
+            aria-label="Compare"
+          >
+            <GitCompare className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            {compareCount > 0 && <CountBubble key={compareCount} count={compareCount} />}
           </Link>
           <Link
             href="/wishlist"
@@ -164,11 +182,26 @@ export function Header() {
                         {c.label}
                       </Link>
                     ))}
+                    <Link
+                      href="/gift-cards"
+                      onClick={() => setMenuOpen(false)}
+                      className="rounded-lg px-2 py-2.5 font-display text-lg text-ink transition-colors hover:bg-cream"
+                    >
+                      Gift Cards
+                    </Link>
                   </nav>
+                  <Link
+                    href="/compare"
+                    onClick={() => setMenuOpen(false)}
+                    className="mt-4 flex items-center gap-2 rounded-lg px-2 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream hover:text-plum"
+                  >
+                    <GitCompare className="h-4 w-4" strokeWidth={1.75} />
+                    Compare{compareCount > 0 ? ` (${compareCount})` : ""}
+                  </Link>
                   <Link
                     href={isLoggedIn ? "/account" : "/account/login"}
                     onClick={() => setMenuOpen(false)}
-                    className="mt-4 flex items-center gap-2 rounded-lg px-2 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream hover:text-plum"
+                    className="flex items-center gap-2 rounded-lg px-2 py-2.5 text-sm text-ink-soft transition-colors hover:bg-cream hover:text-plum"
                   >
                     <User className="h-4 w-4" strokeWidth={1.75} />
                     {isLoggedIn ? "My account" : "Sign in"}

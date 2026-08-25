@@ -2,13 +2,15 @@
 
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Heart, Check } from "lucide-react";
+import { Heart, Check, GitCompare } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { ProductArt } from "@/components/product-art";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useCartStore } from "@/store/cart-store";
 import { useWishlistStore } from "@/store/wishlist-store";
+import { useCompareStore } from "@/store/compare-store";
+import { ProductReviews } from "@/components/product-reviews";
 
 export function ProductDetail({ product }: { product: Product }) {
   const [activeImage, setActiveImage] = useState(0);
@@ -22,6 +24,10 @@ export function ProductDetail({ product }: { product: Product }) {
   const wishlisted = useWishlistStore((s) => s.has(product.id));
   const isWishlisted = wishlistHydrated && wishlisted;
   const toggleWishlist = useWishlistStore((s) => s.toggle);
+  const compareHydrated = useCompareStore((s) => s.hasHydrated);
+  const compared = useCompareStore((s) => s.has(product.id));
+  const isCompared = compareHydrated && compared;
+  const toggleCompare = useCompareStore((s) => s.toggle);
 
   const gallery = [0, 1, 2];
   const galleryRef = useRef<HTMLDivElement>(null);
@@ -46,6 +52,7 @@ export function ProductDetail({ product }: { product: Product }) {
   }
 
   return (
+    <>
     <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-14">
       <div className="lg:sticky lg:top-20">
         <div className="flex gap-3">
@@ -210,6 +217,16 @@ export function ProductDetail({ product }: { product: Product }) {
               <Heart className={cn("h-[18px] w-[18px]", isWishlisted && "fill-rose text-rose")} strokeWidth={1.75} />
             </motion.span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => toggleCompare(product.id)}
+            aria-pressed={isCompared}
+            aria-label="Toggle compare"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-line-strong text-ink transition-colors hover:border-plum hover:text-plum"
+          >
+            <GitCompare className={cn("h-[18px] w-[18px]", isCompared && "text-plum")} strokeWidth={1.75} />
+          </button>
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2 text-[0.68rem] font-medium uppercase tracking-wider text-ink-faint">
@@ -231,5 +248,7 @@ export function ProductDetail({ product }: { product: Product }) {
         </dl>
       </div>
     </div>
+    <ProductReviews productId={product.id} />
+    </>
   );
 }

@@ -34,6 +34,11 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link href="/gift-cards" className="text-sm text-ink-soft hover:text-plum">
+                  Gift Cards
+                </Link>
+              </li>
             </ul>
           </div>
 

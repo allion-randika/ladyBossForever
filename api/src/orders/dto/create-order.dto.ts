@@ -58,6 +58,10 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   discountCode?: string;
+
+  @IsOptional()
+  @IsString()
+  giftCardCode?: string;
 }
 
 export class CreateGuestOrderDto extends CreateOrderDto {

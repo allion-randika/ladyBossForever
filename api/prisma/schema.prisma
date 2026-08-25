@@ -18,8 +18,8 @@ enum AdminRole {
 }
 
 model Customer {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   // Null for a customer created by guest checkout — they have no password
   // and can't log in until they register with this email.
   passwordHash String?
@@ -27,13 +27,16 @@ model Customer {
   lastName     String
   phone        String?
   birthday     DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   addresses Address[]
   orders    Order[]
   wishlist  WishlistItem[]
   cartItems CartItem[]
+  reviews   Review[]
+
+  purchasedGiftCards GiftCard[] @relation("PurchasedGiftCards")
 
   @@map("customers")
 }
@@ -48,7 +51,8 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  auditLogs AuditLog[]
+  auditLogs       AuditLog[]
+  issuedGiftCards GiftCard[]
 
   @@map("admin_users")
 }
@@ -58,13 +62,13 @@ model Address {
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   customerId String
 
-  label       String  @default("Home")
-  line1       String
-  line2       String?
-  city        String
-  postalCode  String?
-  phone       String
-  isDefault   Boolean @default(false)
+  label      String  @default("Home")
+  line1      String
+  line2      String?
+  city       String
+  postalCode String?
+  phone      String
+  isDefault  Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -93,8 +97,8 @@ model Product {
   description String
   details     String[]
 
-  price           Int // stored in minor-less LKR (whole rupees)
-  compareAtPrice  Int?
+  price          Int // stored in minor-less LKR (whole rupees)
+  compareAtPrice Int?
 
   category   Category @relation(fields: [categoryId], references: [id])
   categoryId String
@@ -107,6 +111,7 @@ model Product {
   wishlistedBy WishlistItem[]
   orderItems   OrderItem[]
   cartItems    CartItem[]
+  reviews      Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -120,8 +125,8 @@ model ProductVariant {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId String
 
-  size  String
-  color String
+  size     String
+  color    String
   colorHex String
 
   stock         Int @default(0)
@@ -211,6 +216,13 @@ model Order {
   // total must stay historically accurate.
   discountAmount Int       @default(0)
 
+  // At most one gift card per order for MVP — same reasoning as discounts:
+  // the redeemed amount is snapshotted here since the card's own balance
+  // keeps moving after this order.
+  giftCard       GiftCard? @relation(fields: [giftCardId], references: [id])
+  giftCardId     String?
+  giftCardAmount Int       @default(0)
+
   subtotal Int
   total    Int
 
@@ -221,6 +233,7 @@ model Order {
 
   @@index([customerId])
   @@index([discountId])
+  @@index([giftCardId])
   @@map("orders")
 }
 
@@ -235,8 +248,8 @@ model OrderItem {
   variant   ProductVariant @relation(fields: [variantId], references: [id])
   variantId String
 
-  qty        Int
-  unitPrice  Int
+  qty       Int
+  unitPrice Int
 
   @@map("order_items")
 }
@@ -270,6 +283,75 @@ model Discount {
   updatedAt DateTime @updatedAt
 
   @@map("discounts")
+}
+
+// ---------- Gift cards ----------
+
+enum GiftCardStatus {
+  ACTIVE
+  REDEEMED
+  DISABLED
+}
+
+model GiftCard {
+  id   String @id @default(cuid())
+  code String @unique
+
+  initialBalance Int
+  balance        Int
+
+  // Set for a customer self-purchase; null for one an admin issued
+  // directly (e.g. a customer-service credit) — issuedByAdmin is set
+  // instead in that case. Exactly one of the two is ever set.
+  purchaser   Customer? @relation("PurchasedGiftCards", fields: [purchaserId], references: [id])
+  purchaserId String?
+
+  issuedByAdmin   AdminUser? @relation(fields: [issuedByAdminId], references: [id])
+  issuedByAdminId String?
+
+  recipientEmail String
+  recipientName  String?
+  message        String?
+
+  status    GiftCardStatus @default(ACTIVE)
+  expiresAt DateTime?
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([purchaserId])
+  @@map("gift_cards")
+}
+
+// ---------- Reviews ----------
+
+model Review {
+  id String @id @default(cuid())
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  rating Int // 1-5
+  title  String?
+  body   String
+
+  // Moderation gate — only approved reviews are shown or counted toward a
+  // product's aggregate rating.
+  isApproved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One review per customer per product — resubmitting means editing, not
+  // stacking a second review.
+  @@unique([productId, customerId])
+  @@index([productId])
+  @@map("reviews")
 }
 
 // ---------- Admin governance ----------

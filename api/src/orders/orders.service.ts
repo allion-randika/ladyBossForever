@@ -10,6 +10,7 @@ import { OrderStatus, type Order } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { DiscountsService } from '../discounts/discounts.service';
+import { GiftCardsService } from '../gift-cards/gift-cards.service';
 import type {
   CreateGuestOrderDto,
   CreateOrderDto,
@@ -22,6 +23,7 @@ const ORDER_INCLUDE = {
   items: { include: { product: true, variant: true } },
   shippingAddress: true,
   discount: { select: { code: true, type: true, value: true } },
+  giftCard: { select: { code: true } },
 } as const;
 
 export interface OrderRequester {
@@ -39,6 +41,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly payments: PaymentsService,
     private readonly discounts: DiscountsService,
+    private readonly giftCards: GiftCardsService,
   ) {}
 
   async create(customerId: string, dto: CreateOrderDto) {
@@ -49,6 +52,7 @@ export class OrdersService {
       dto.paymentMethod,
       undefined,
       dto.discountCode,
+      dto.giftCardCode,
     );
     const payment = await this.payments.initiate(order, dto.paymentMethod);
     return { order, payment };
@@ -68,6 +72,7 @@ export class OrdersService {
       dto.paymentMethod,
       guestToken,
       dto.discountCode,
+      dto.giftCardCode,
     );
     const payment = await this.payments.initiate(order, dto.paymentMethod);
     // Guests have no session — the confirm/lookup steps authenticate via
@@ -182,6 +187,7 @@ export class OrdersService {
     paymentMethod: PaymentMethod,
     guestToken?: string,
     discountCode?: string,
+    giftCardCode?: string,
   ) {
     const variantIds = items.map((i) => i.variantId);
     const variants = await this.prisma.productVariant.findMany({
@@ -222,7 +228,16 @@ export class OrdersService {
       ? await this.discounts.validate(discountCode, subtotal)
       : null;
     const discountAmount = application?.discountAmount ?? 0;
-    const total = subtotal - discountAmount;
+    const afterDiscount = subtotal - discountAmount;
+
+    // Same principle for gift cards: capped at what's actually still owed
+    // after the discount, and re-validated against the server-computed
+    // amount rather than anything the client sent.
+    const giftCardApplication = giftCardCode
+      ? await this.giftCards.validateForRedemption(giftCardCode, afterDiscount)
+      : null;
+    const giftCardAmount = giftCardApplication?.amountApplied ?? 0;
+    const total = afterDiscount - giftCardAmount;
 
     return this.prisma.$transaction(async (tx) => {
       const address = await tx.address.create({
@@ -239,6 +254,8 @@ export class OrdersService {
           total,
           discountId: application?.discount.id,
           discountAmount,
+          giftCardId: giftCardApplication?.giftCard.id,
+          giftCardAmount,
           guestToken,
           items: {
             create: items.map((item) => {
@@ -260,6 +277,14 @@ export class OrdersService {
           where: { id: application.discount.id },
           data: { usageCount: { increment: 1 } },
         });
+      }
+
+      if (giftCardApplication) {
+        await this.giftCards.redeem(
+          tx,
+          giftCardApplication.giftCard.id,
+          giftCardAmount,
+        );
       }
 
       for (const item of items) {

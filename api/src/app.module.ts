@@ -12,6 +12,8 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { CustomersModule } from './customers/customers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DiscountsModule } from './discounts/discounts.module';
+import { GiftCardsModule } from './gift-cards/gift-cards.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { DiscountsModule } from './discounts/discounts.module';
     CustomersModule,
     DashboardModule,
     DiscountsModule,
+    GiftCardsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
 })

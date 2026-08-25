@@ -366,3 +366,85 @@ export function approveReview(token: string, id: string): Promise<AdminReview> {
 export function rejectReview(token: string, id: string): Promise<void> {
   return request(`/reviews/${id}`, { method: "DELETE", token });
 }
+
+// ---------- Blog ----------
+
+export type PostStatus = "DRAFT" | "PUBLISHED";
+
+export interface AdminBlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  status: PostStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  author: { id: string; name: string } | null;
+}
+
+export interface BlogPostInput {
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  status?: PostStatus;
+}
+
+export function fetchBlogPostsAdmin(token: string): Promise<AdminBlogPost[]> {
+  return request("/blog/admin/all", { token });
+}
+
+export function createBlogPost(token: string, input: BlogPostInput): Promise<AdminBlogPost> {
+  return request("/blog", { method: "POST", token, body: input });
+}
+
+export function updateBlogPost(
+  token: string,
+  id: string,
+  input: Partial<Omit<BlogPostInput, "slug">>
+): Promise<AdminBlogPost> {
+  return request(`/blog/${id}`, { method: "PATCH", token, body: input });
+}
+
+export function deleteBlogPost(token: string, id: string): Promise<void> {
+  return request(`/blog/${id}`, { method: "DELETE", token });
+}
+
+// ---------- Banners ----------
+
+export interface AdminBanner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  ctaLabel: string;
+  ctaHref: string;
+  position: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface BannerInput {
+  title: string;
+  subtitle?: string;
+  ctaLabel: string;
+  ctaHref: string;
+  position?: number;
+  isActive?: boolean;
+}
+
+export function fetchBannersAdmin(token: string): Promise<AdminBanner[]> {
+  return request("/banners/admin/all", { token });
+}
+
+export function createBanner(token: string, input: BannerInput): Promise<AdminBanner> {
+  return request("/banners", { method: "POST", token, body: input });
+}
+
+export function updateBanner(token: string, id: string, input: Partial<BannerInput>): Promise<AdminBanner> {
+  return request(`/banners/${id}`, { method: "PATCH", token, body: input });
+}
+
+export function deleteBanner(token: string, id: string): Promise<void> {
+  return request(`/banners/${id}`, { method: "DELETE", token });
+}

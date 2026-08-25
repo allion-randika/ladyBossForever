@@ -53,6 +53,7 @@ model AdminUser {
 
   auditLogs       AuditLog[]
   issuedGiftCards GiftCard[]
+  blogPosts       BlogPost[]
 
   @@map("admin_users")
 }
@@ -352,6 +353,51 @@ model Review {
   @@unique([productId, customerId])
   @@index([productId])
   @@map("reviews")
+}
+
+// ---------- Content ----------
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogPost {
+  id      String     @id @default(cuid())
+  slug    String     @unique
+  title   String
+  excerpt String
+  body    String
+  status  PostStatus @default(DRAFT)
+
+  // Set the first time status flips to PUBLISHED; unpublishing later
+  // leaves it as-is so re-publishing doesn't look like a brand-new post.
+  publishedAt DateTime?
+
+  author   AdminUser? @relation(fields: [authorId], references: [id])
+  authorId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("blog_posts")
+}
+
+model Banner {
+  id       String  @id @default(cuid())
+  title    String
+  subtitle String?
+  ctaLabel String
+  ctaHref  String
+
+  // Lower sorts first. Ties break by createdAt.
+  position Int     @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("banners")
 }
 
 // ---------- Admin governance ----------

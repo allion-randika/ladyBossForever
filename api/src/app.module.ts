@@ -14,6 +14,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { DiscountsModule } from './discounts/discounts.module';
 import { GiftCardsModule } from './gift-cards/gift-cards.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { BlogModule } from './blog/blog.module';
+import { BannersModule } from './banners/banners.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { ReviewsModule } from './reviews/reviews.module';
     DiscountsModule,
     GiftCardsModule,
     ReviewsModule,
+    BlogModule,
+    BannersModule,
   ],
   controllers: [AppController],
 })

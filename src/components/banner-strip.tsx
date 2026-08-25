@@ -16,7 +16,7 @@ export function BannerStrip({ banners }: { banners: Banner[] }) {
               href={banner.ctaHref}
               className="group relative flex h-40 items-center overflow-hidden rounded-2xl px-8"
             >
-              <EditorialArt art={artForProduct(banner.id)} className="absolute inset-0" />
+              <EditorialArt art={artForProduct(banner.id)} fill />
               <div className="relative">
                 <h3 className="text-balance font-display text-xl text-white sm:text-2xl">{banner.title}</h3>
                 {banner.subtitle && <p className="mt-1 max-w-xs text-sm text-white/80">{banner.subtitle}</p>}

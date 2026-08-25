@@ -4,14 +4,26 @@ import type { ArtSpec } from "@/lib/types";
 // Same gradient + grain language as ProductArt, minus the category icon —
 // used for blog covers and homepage banners, which aren't tied to a
 // product category.
-export function EditorialArt({ art, className }: { art: ArtSpec; className?: string }) {
+export function EditorialArt({
+  art,
+  className,
+  fill = false,
+}: {
+  art: ArtSpec;
+  className?: string;
+  /** Absolutely fills the nearest positioned ancestor instead of sitting
+   * in normal flow — for stacking behind content (e.g. banner text)
+   * rather than being the content itself (e.g. a blog cover image). */
+  fill?: boolean;
+}) {
   return (
     <div
       className={className}
       style={{
         background: `linear-gradient(135deg, ${art.from} 0%, ${art.to} 100%)`,
-        position: "relative",
+        position: fill ? "absolute" : "relative",
         overflow: "hidden",
+        ...(fill ? { inset: 0 } : {}),
       }}
     >
       <svg aria-hidden className="absolute inset-0 h-full w-full opacity-[0.14]" style={{ color: art.accent }}>

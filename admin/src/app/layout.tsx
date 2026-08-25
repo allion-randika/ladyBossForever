@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Work_Sans } from "next/font/google";
 import "./globals.css";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 
 const workSans = Work_Sans({
   variable: "--font-work-sans",
@@ -16,7 +17,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${workSans.variable} h-full antialiased`}>
-      <body className="min-h-full bg-paper text-ink">{children}</body>
+      <body className="min-h-full bg-paper text-ink">
+        <ConfirmProvider>{children}</ConfirmProvider>
+      </body>
     </html>
   );
 }

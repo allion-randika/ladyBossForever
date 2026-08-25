@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   fetchDiscounts,
   createDiscount,
@@ -38,6 +39,7 @@ function formatValue(discount: Discount) {
 
 export default function PromotionsPage() {
   const token = useAuthStore((s) => s.token);
+  const confirm = useConfirm();
   const [discounts, setDiscounts] = useState<Discount[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,7 +95,13 @@ export default function PromotionsPage() {
 
   async function handleDelete(discount: Discount) {
     if (!token) return;
-    if (!confirm(`Delete code "${discount.code}"?`)) return;
+    const ok = await confirm({
+      title: `Delete code "${discount.code}"?`,
+      description: "This code will no longer be usable at checkout. This cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     setBusyId(discount.id);
     setError(null);
     try {

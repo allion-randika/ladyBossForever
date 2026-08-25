@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, Users, Tag, ScrollText, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Tag, Gift, Star, ScrollText, LogOut } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import type { AdminRole } from "@/lib/api";
 
@@ -13,6 +13,8 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; roles?: 
   { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/promotions", label: "Promotions", icon: Tag, roles: ["MARKETING_MANAGER"] },
+  { href: "/gift-cards", label: "Gift cards", icon: Gift, roles: ["ACCOUNTANT"] },
+  { href: "/reviews", label: "Reviews", icon: Star, roles: ["MARKETING_MANAGER"] },
   // Empty roles list — visible to SUPER_ADMIN only, via the bypass below.
   { href: "/audit-log", label: "Audit log", icon: ScrollText, roles: [] },
 ];

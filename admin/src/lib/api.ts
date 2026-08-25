@@ -307,3 +307,62 @@ export function updateDiscount(
 export function deleteDiscount(token: string, id: string): Promise<void> {
   return request(`/discounts/${id}`, { method: "DELETE", token });
 }
+
+// ---------- Gift cards ----------
+
+export type GiftCardStatus = "ACTIVE" | "REDEEMED" | "DISABLED";
+
+export interface AdminGiftCard {
+  id: string;
+  code: string;
+  initialBalance: number;
+  balance: number;
+  recipientEmail: string;
+  recipientName: string | null;
+  message: string | null;
+  status: GiftCardStatus;
+  expiresAt: string | null;
+  createdAt: string;
+  purchaser: { id: string; email: string } | null;
+  issuedByAdmin: { id: string; name: string } | null;
+}
+
+export interface IssueGiftCardInput {
+  amount: number;
+  recipientEmail: string;
+  recipientName?: string;
+  message?: string;
+  expiresAt?: string;
+}
+
+export function fetchGiftCards(token: string): Promise<AdminGiftCard[]> {
+  return request("/gift-cards/admin/all", { token });
+}
+
+export function issueGiftCard(token: string, input: IssueGiftCardInput): Promise<AdminGiftCard> {
+  return request("/gift-cards/admin/issue", { method: "POST", token, body: input });
+}
+
+// ---------- Reviews ----------
+
+export interface AdminReview {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  createdAt: string;
+  customer: { id: string; firstName: string; lastName: string };
+  product: { id: string; name: string; slug: string };
+}
+
+export function fetchPendingReviews(token: string): Promise<AdminReview[]> {
+  return request("/reviews/pending", { token });
+}
+
+export function approveReview(token: string, id: string): Promise<AdminReview> {
+  return request(`/reviews/${id}/approve`, { method: "PATCH", token });
+}
+
+export function rejectReview(token: string, id: string): Promise<void> {
+  return request(`/reviews/${id}`, { method: "DELETE", token });
+}

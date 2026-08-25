@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   fetchAdminProduct,
   fetchCategories,
@@ -22,6 +23,7 @@ export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const token = useAuthStore((s) => s.token);
+  const confirm = useConfirm();
 
   const [product, setProduct] = useState<AdminProduct | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -99,7 +101,13 @@ export default function EditProductPage() {
 
   async function handleDeleteProduct() {
     if (!token || !product) return;
-    if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Delete "${product.name}"?`,
+      description: "This removes the product and its variants. This cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteProduct(token, product.id);
       router.replace("/products");
@@ -138,7 +146,13 @@ export default function EditProductPage() {
 
   async function handleRemoveVariant(variantId: string) {
     if (!token || !product) return;
-    if (!confirm("Remove this variant?")) return;
+    const ok = await confirm({
+      title: "Remove this variant?",
+      description: "This size/colour combination will no longer be available to purchase.",
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const updated = await removeVariant(token, product.id, variantId);
       setProduct(updated);

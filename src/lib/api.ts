@@ -301,6 +301,44 @@ export function submitReview(
   return authFetch(`/reviews/product/${productId}`, token, { method: "POST", body: input });
 }
 
+// ---------- Blog ----------
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  publishedAt: string | null;
+  createdAt: string;
+}
+
+export function fetchBlogPosts(): Promise<BlogPost[]> {
+  return apiFetch<BlogPost[]>("/blog");
+}
+
+export async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
+  try {
+    return await apiFetch<BlogPost>(`/blog/${slug}`);
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Banners ----------
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+export function fetchBanners(): Promise<Banner[]> {
+  return apiFetch<Banner[]>("/banners");
+}
+
 // ---------- Wishlist (logged-in customers only — server is source of truth) ----------
 
 export function fetchWishlist(token: string): Promise<string[]> {

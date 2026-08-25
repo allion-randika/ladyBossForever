@@ -3,13 +3,14 @@ import { Hero } from "@/components/hero";
 import { Reveal } from "@/components/reveal";
 import { ProductCard } from "@/components/product-card";
 import { CategoryTiles } from "@/components/category-tiles";
+import { BannerStrip } from "@/components/banner-strip";
 import { getBestsellers, getNewArrivals, getSaleProducts } from "@/lib/products";
-import { fetchProducts } from "@/lib/api";
+import { fetchProducts, fetchBanners } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const products = await fetchProducts();
+  const [products, banners] = await Promise.all([fetchProducts(), fetchBanners()]);
   const newArrivals = getNewArrivals(products, 4);
   const bestsellers = getBestsellers(products, 4);
   const sale = getSaleProducts(products, 4);
@@ -17,6 +18,8 @@ export default async function Home() {
   return (
     <div>
       <Hero />
+
+      <BannerStrip banners={banners} />
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <Reveal>

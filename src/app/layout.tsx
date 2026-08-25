@@ -22,6 +22,14 @@ export const metadata: Metadata = {
   description: "Fashion and accessories, Sri Lanka — design preview",
 };
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Lady Boss Forever",
+  url: "https://ladybossforever.com",
+  sameAs: [],
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -30,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${bodoniModa.variable} ${workSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

@@ -80,6 +80,12 @@ export function Header() {
           >
             Gift Cards
           </Link>
+          <Link
+            href="/blog"
+            className="text-[0.72rem] font-medium uppercase tracking-wider text-ink-soft transition-colors hover:text-plum"
+          >
+            Journal
+          </Link>
         </nav>
 
         <div className="flex items-center gap-1">
@@ -188,6 +194,13 @@ export function Header() {
                       className="rounded-lg px-2 py-2.5 font-display text-lg text-ink transition-colors hover:bg-cream"
                     >
                       Gift Cards
+                    </Link>
+                    <Link
+                      href="/blog"
+                      onClick={() => setMenuOpen(false)}
+                      className="rounded-lg px-2 py-2.5 font-display text-lg text-ink transition-colors hover:bg-cream"
+                    >
+                      Journal
                     </Link>
                   </nav>
                   <Link

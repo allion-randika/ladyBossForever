@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getRelatedProducts } from "@/lib/products";
-import { fetchProductBySlug, fetchProducts } from "@/lib/api";
+import { fetchProductBySlug, fetchProducts, fetchProductReviews } from "@/lib/api";
 import { ProductDetail } from "@/components/product-detail";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
@@ -16,11 +16,40 @@ export default async function ProductPage({
   const product = await fetchProductBySlug(slug);
   if (!product) notFound();
 
-  const categoryProducts = await fetchProducts({ category: product.category });
+  const [categoryProducts, reviews] = await Promise.all([
+    fetchProducts({ category: product.category }),
+    fetchProductReviews(product.id).catch(() => ({ reviews: [], averageRating: 0, count: 0 })),
+  ]);
   const related = getRelatedProducts(categoryProducts, product);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "LKR",
+      price: product.price,
+      // Real per-variant stock isn't threaded through to the storefront's
+      // Product type — every seeded product currently has stock, so this
+      // is a reasonable default rather than asserting a value we can't see.
+      availability: "https://schema.org/InStock",
+    },
+    ...(reviews.count > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: reviews.averageRating,
+            reviewCount: reviews.count,
+          },
+        }
+      : {}),
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <ProductDetail product={product} />
 
       {related.length > 0 && (

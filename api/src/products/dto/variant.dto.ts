@@ -13,6 +13,11 @@ export class AddVariantDto {
   @IsInt()
   @Min(0)
   stock!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  costPrice?: number;
 }
 
 export class UpdateVariantDto {
@@ -24,4 +29,9 @@ export class UpdateVariantDto {
   @IsOptional()
   @IsString()
   colorHex?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  costPrice?: number;
 }

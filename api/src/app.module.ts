@@ -16,6 +16,8 @@ import { GiftCardsModule } from './gift-cards/gift-cards.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { BlogModule } from './blog/blog.module';
 import { BannersModule } from './banners/banners.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { AccountsModule } from './accounts/accounts.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { BannersModule } from './banners/banners.module';
     ReviewsModule,
     BlogModule,
     BannersModule,
+    ExpensesModule,
+    AccountsModule,
   ],
   controllers: [AppController],
 })

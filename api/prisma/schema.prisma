@@ -133,6 +133,12 @@ model ProductVariant {
   stock         Int @default(0)
   reservedStock Int @default(0)
 
+  // What it costs to make/source this variant, in LKR — set directly by
+  // inventory staff (no supplier chain to derive it from). Null until set,
+  // so profitability reports can distinguish "no cost data yet" from "cost
+  // is zero" rather than silently treating unset cost as free.
+  costPrice Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -398,6 +404,31 @@ model Banner {
   updatedAt DateTime @updatedAt
 
   @@map("banners")
+}
+
+// ---------- Accounts ----------
+
+enum ExpenseCategory {
+  STOCK
+  ADS
+  SALARIES
+  RENT
+  PACKAGING
+  OTHER
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  category    ExpenseCategory
+  description String
+  amount      Int // LKR
+  incurredAt  DateTime        @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([incurredAt])
+  @@map("expenses")
 }
 
 // ---------- Admin governance ----------

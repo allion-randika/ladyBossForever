@@ -94,6 +94,7 @@ export interface AdminVariant {
   colorHex: string;
   stock: number;
   reservedStock: number;
+  costPrice: number | null;
 }
 
 export interface AdminProduct {
@@ -158,6 +159,7 @@ export interface VariantInput {
   color: string;
   colorHex: string;
   stock: number;
+  costPrice?: number;
 }
 
 export function addVariant(token: string, productId: string, input: VariantInput): Promise<AdminProduct> {
@@ -168,7 +170,7 @@ export function updateVariant(
   token: string,
   productId: string,
   variantId: string,
-  input: Partial<Pick<VariantInput, "stock" | "colorHex">>
+  input: Partial<Pick<VariantInput, "stock" | "colorHex" | "costPrice">>
 ): Promise<AdminProduct> {
   return request(`/products/${productId}/variants/${variantId}`, { method: "PATCH", token, body: input });
 }
@@ -447,4 +449,70 @@ export function updateBanner(token: string, id: string, input: Partial<BannerInp
 
 export function deleteBanner(token: string, id: string): Promise<void> {
   return request(`/banners/${id}`, { method: "DELETE", token });
+}
+
+// ---------- Expenses ----------
+
+export type ExpenseCategory = "STOCK" | "ADS" | "SALARIES" | "RENT" | "PACKAGING" | "OTHER";
+
+export interface Expense {
+  id: string;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  incurredAt: string;
+}
+
+export interface ExpenseInput {
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  incurredAt?: string;
+}
+
+export function fetchExpenses(token: string): Promise<Expense[]> {
+  return request("/expenses", { token });
+}
+
+export function createExpense(token: string, input: ExpenseInput): Promise<Expense> {
+  return request("/expenses", { method: "POST", token, body: input });
+}
+
+export function updateExpense(token: string, id: string, input: Partial<ExpenseInput>): Promise<Expense> {
+  return request(`/expenses/${id}`, { method: "PATCH", token, body: input });
+}
+
+export function deleteExpense(token: string, id: string): Promise<void> {
+  return request(`/expenses/${id}`, { method: "DELETE", token });
+}
+
+// ---------- Accounts ----------
+
+export interface AccountsSummary {
+  totalRevenue: number;
+  totalCOGS: number;
+  totalExpenses: number;
+  grossProfit: number;
+  netProfit: number;
+  unitsMissingCost: number;
+}
+
+export interface ProductProfit {
+  id: string;
+  name: string;
+  slug: string;
+  unitsSold: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+  margin: number;
+  unitsMissingCost: number;
+}
+
+export function fetchAccountsSummary(token: string): Promise<AccountsSummary> {
+  return request("/accounts/summary", { token });
+}
+
+export function fetchProfitability(token: string): Promise<ProductProfit[]> {
+  return request("/accounts/profitability", { token });
 }

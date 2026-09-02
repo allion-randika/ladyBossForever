@@ -41,7 +41,7 @@ export default function EditProductPage() {
   const [isBestseller, setIsBestseller] = useState(false);
   const [isOnSale, setIsOnSale] = useState(false);
 
-  const [newVariant, setNewVariant] = useState({ size: "", color: "", colorHex: "#000000", stock: "0" });
+  const [newVariant, setNewVariant] = useState({ size: "", color: "", colorHex: "#000000", stock: "0", costPrice: "" });
 
   const load = useCallback(() => {
     if (!id) return;
@@ -126,9 +126,10 @@ export default function EditProductPage() {
         color: newVariant.color,
         colorHex: newVariant.colorHex,
         stock: Number(newVariant.stock),
+        costPrice: newVariant.costPrice ? Number(newVariant.costPrice) : undefined,
       });
       setProduct(updated);
-      setNewVariant({ size: "", color: "", colorHex: "#000000", stock: "0" });
+      setNewVariant({ size: "", color: "", colorHex: "#000000", stock: "0", costPrice: "" });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to add variant");
     }
@@ -141,6 +142,16 @@ export default function EditProductPage() {
       setProduct(updated);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to update stock");
+    }
+  }
+
+  async function handleCostChange(variantId: string, costPrice: number) {
+    if (!token || !product) return;
+    try {
+      const updated = await updateVariant(token, product.id, variantId, { costPrice });
+      setProduct(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update cost price");
     }
   }
 
@@ -276,6 +287,7 @@ export default function EditProductPage() {
               <th className="py-2 font-medium">Color</th>
               <th className="py-2 font-medium">Stock</th>
               <th className="py-2 font-medium">Reserved</th>
+              <th className="py-2 font-medium">Cost price</th>
               <th className="py-2 font-medium"></th>
             </tr>
           </thead>
@@ -305,6 +317,19 @@ export default function EditProductPage() {
                   />
                 </td>
                 <td className="py-2 tabular-nums text-ink-faint">{v.reservedStock}</td>
+                <td className="py-2">
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Not set"
+                    defaultValue={v.costPrice ?? ""}
+                    onBlur={(e) => {
+                      const val = e.target.value === "" ? null : Number(e.target.value);
+                      if (val !== null && val !== v.costPrice) handleCostChange(v.id, val);
+                    }}
+                    className="w-24 rounded-md border border-line px-2 py-1 text-sm focus:border-plum focus:outline-none"
+                  />
+                </td>
                 <td className="py-2 text-right">
                   <button
                     onClick={() => handleRemoveVariant(v.id)}
@@ -355,6 +380,17 @@ export default function EditProductPage() {
               min={0}
               value={newVariant.stock}
               onChange={(e) => setNewVariant((v) => ({ ...v, stock: e.target.value }))}
+              className="w-24 rounded-md border border-line px-2 py-1.5 text-sm focus:border-plum focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-ink-faint">Cost price</label>
+            <input
+              type="number"
+              min={0}
+              placeholder="Optional"
+              value={newVariant.costPrice}
+              onChange={(e) => setNewVariant((v) => ({ ...v, costPrice: e.target.value }))}
               className="w-24 rounded-md border border-line px-2 py-1.5 text-sm focus:border-plum focus:outline-none"
             />
           </div>

@@ -13,6 +13,8 @@ import {
   Star,
   Newspaper,
   Image as ImageIcon,
+  Receipt,
+  Landmark,
   ScrollText,
   LogOut,
 } from "lucide-react";
@@ -29,6 +31,8 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; roles?: 
   { href: "/reviews", label: "Reviews", icon: Star, roles: ["MARKETING_MANAGER"] },
   { href: "/blog", label: "Blog", icon: Newspaper, roles: ["MARKETING_MANAGER"] },
   { href: "/banners", label: "Banners", icon: ImageIcon, roles: ["MARKETING_MANAGER"] },
+  { href: "/expenses", label: "Expenses", icon: Receipt, roles: ["ACCOUNTANT"] },
+  { href: "/accounts", label: "Accounts", icon: Landmark, roles: ["ACCOUNTANT"] },
   // Empty roles list — visible to SUPER_ADMIN only, via the bypass below.
   { href: "/audit-log", label: "Audit log", icon: ScrollText, roles: [] },
 ];

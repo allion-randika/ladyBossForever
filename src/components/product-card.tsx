@@ -4,7 +4,8 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { Heart, GitCompare } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { ProductArt } from "@/components/product-art";
+import { ProductPhoto } from "@/components/product-photo";
+import { heroPhotoForProduct } from "@/lib/product-photos";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useWishlistStore } from "@/store/wishlist-store";
@@ -35,11 +36,17 @@ export function ProductCard({
       <Link href={`/product/${product.slug}`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-cream">
           <motion.div
-            className="h-full w-full"
+            className="relative h-full w-full"
             whileHover={{ scale: 1.045 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <ProductArt art={product.art} category={product.category} className="h-full w-full" />
+            <ProductPhoto
+              src={heroPhotoForProduct(product.id, product.category)}
+              art={product.art}
+              category={product.category}
+              alt={product.name}
+              className="h-full w-full"
+            />
           </motion.div>
 
           {badge && (

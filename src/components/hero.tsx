@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
+import Image from "next/image";
+import { useState } from "react";
 import { ProductArt } from "@/components/product-art";
+
+// Stock editorial portrait standing in for a real campaign shot until the
+// business has its own hero photography — same reasoning as the category
+// photos in lib/product-photos.ts.
+const HERO_PHOTO =
+  "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=1200&q=80";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export function Hero() {
+  const [photoFailed, setPhotoFailed] = useState(false);
+
   return (
     <section className="relative overflow-hidden">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20 lg:px-8">
@@ -76,11 +86,23 @@ export function Hero() {
           transition={{ duration: 0.7, ease }}
           className="relative aspect-[4/5] overflow-hidden rounded-2xl lg:aspect-square"
         >
-          <ProductArt
-            art={{ from: "#4a1942", to: "#b34e6f", accent: "#f1e8e2" }}
-            category="dresses"
-            className="h-full w-full"
-          />
+          {photoFailed ? (
+            <ProductArt
+              art={{ from: "#4a1942", to: "#b34e6f", accent: "#f1e8e2" }}
+              category="dresses"
+              className="h-full w-full"
+            />
+          ) : (
+            <Image
+              src={HERO_PHOTO}
+              alt="Lady Boss Forever — new season arrivals"
+              fill
+              priority
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover"
+              onError={() => setPhotoFailed(true)}
+            />
+          )}
         </motion.div>
       </div>
     </section>

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { useCompareStore } from "@/store/compare-store";
 import { useProductCacheStore } from "@/store/product-cache-store";
-import { ProductArt } from "@/components/product-art";
+import { ProductPhoto } from "@/components/product-photo";
+import { heroPhotoForProduct } from "@/lib/product-photos";
 import { formatLKR } from "@/lib/format";
 
 export default function ComparePage() {
@@ -66,7 +67,14 @@ export default function ComparePage() {
             {items.map((product) => (
               <div key={product.id} className="flex flex-col">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-cream">
-                  <ProductArt art={product.art} category={product.category} className="h-full w-full" />
+                  <ProductPhoto
+                    src={heroPhotoForProduct(product.id, product.category)}
+                    art={product.art}
+                    category={product.category}
+                    alt={product.name}
+                    className="h-full w-full"
+                    sizes="220px"
+                  />
                   <button
                     type="button"
                     onClick={() => remove(product.id)}

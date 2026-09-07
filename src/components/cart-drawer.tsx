@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Minus, Plus, X } from "lucide-react";
 import { useCartStore, cartSubtotal } from "@/store/cart-store";
 import { useProductCacheStore } from "@/store/product-cache-store";
-import { ProductArt } from "@/components/product-art";
+import { ProductPhoto } from "@/components/product-photo";
+import { heroPhotoForProduct } from "@/lib/product-photos";
 import { formatLKR } from "@/lib/format";
 
 export function CartDrawer() {
@@ -85,9 +86,16 @@ export function CartDrawer() {
                           <Link
                             href={`/product/${product.slug}`}
                             onClick={close}
-                            className="h-20 w-16 shrink-0 overflow-hidden rounded-lg"
+                            className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg"
                           >
-                            <ProductArt art={product.art} category={product.category} className="h-full w-full" />
+                            <ProductPhoto
+                              src={heroPhotoForProduct(product.id, product.category)}
+                              art={product.art}
+                              category={product.category}
+                              alt={product.name}
+                              className="h-full w-full"
+                              sizes="64px"
+                            />
                           </Link>
                           <div className="flex flex-1 flex-col">
                             <div className="flex items-start justify-between gap-2">

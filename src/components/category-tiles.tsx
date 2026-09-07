@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { CATEGORIES } from "@/lib/categories";
-import { ProductArt } from "@/components/product-art";
+import { ProductPhoto } from "@/components/product-photo";
+import { photoForCategory } from "@/lib/product-photos";
 import type { ArtSpec } from "@/lib/types";
 
 const TILE_ART: Record<string, ArtSpec> = {
@@ -28,7 +29,14 @@ export function CategoryTiles() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="relative aspect-square overflow-hidden rounded-xl"
           >
-            <ProductArt art={TILE_ART[c.slug]} category={c.slug} className="h-full w-full" />
+            <ProductPhoto
+              src={photoForCategory(c.slug)}
+              art={TILE_ART[c.slug]}
+              category={c.slug}
+              alt={c.label}
+              className="h-full w-full"
+              sizes="(min-width: 1024px) 20vw, 33vw"
+            />
             <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/45 via-black/0 to-black/0 p-3">
               <p className="font-display text-base text-white">{c.label}</p>
               <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/75">{c.blurb}</p>

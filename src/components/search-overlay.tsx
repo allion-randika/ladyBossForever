@@ -6,7 +6,8 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, X, Loader2 } from "lucide-react";
 import { fetchProducts } from "@/lib/api";
-import { ProductArt } from "@/components/product-art";
+import { ProductPhoto } from "@/components/product-photo";
+import { heroPhotoForProduct } from "@/lib/product-photos";
 import { formatLKR } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
@@ -117,8 +118,15 @@ export function SearchOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: (
                               onClick={onClose}
                               className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-cream"
                             >
-                              <div className="h-14 w-11 shrink-0 overflow-hidden rounded-lg">
-                                <ProductArt art={product.art} category={product.category} className="h-full w-full" />
+                              <div className="relative h-14 w-11 shrink-0 overflow-hidden rounded-lg">
+                                <ProductPhoto
+                                  src={heroPhotoForProduct(product.id, product.category)}
+                                  art={product.art}
+                                  category={product.category}
+                                  alt={product.name}
+                                  className="h-full w-full"
+                                  sizes="44px"
+                                />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-ink">{product.name}</p>

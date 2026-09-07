@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Heart, Check, GitCompare } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { ProductArt } from "@/components/product-art";
+import { ProductPhoto } from "@/components/product-photo";
+import { photosForProduct } from "@/lib/product-photos";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useCartStore } from "@/store/cart-store";
@@ -30,6 +31,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const toggleCompare = useCompareStore((s) => s.toggle);
 
   const gallery = [0, 1, 2];
+  const galleryPhotos = photosForProduct(product.id, product.category, 1200);
   const galleryRef = useRef<HTMLDivElement>(null);
 
   function handleGalleryScroll() {
@@ -66,9 +68,15 @@ export function ProductDetail({ product }: { product: Product }) {
                   "relative aspect-square overflow-hidden rounded-lg ring-2 transition-all",
                   activeImage === idx ? "ring-plum" : "ring-transparent hover:ring-line-strong"
                 )}
-                style={{ filter: `hue-rotate(${idx * 6}deg)` }}
               >
-                <ProductArt art={product.art} category={product.category} className="h-full w-full" />
+                <ProductPhoto
+                  src={galleryPhotos[idx]}
+                  art={product.art}
+                  category={product.category}
+                  alt={`${product.name} — view ${idx + 1}`}
+                  className="h-full w-full"
+                  sizes="80px"
+                />
               </button>
             ))}
           </div>
@@ -80,9 +88,14 @@ export function ProductDetail({ product }: { product: Product }) {
           >
             {gallery.map((idx) => (
               <div key={idx} className="relative h-full w-full shrink-0 snap-start snap-always">
-                <div style={{ filter: `hue-rotate(${idx * 6}deg)` }} className="h-full w-full">
-                  <ProductArt art={product.art} category={product.category} className="h-full w-full" />
-                </div>
+                <ProductPhoto
+                  src={galleryPhotos[idx]}
+                  art={product.art}
+                  category={product.category}
+                  alt={`${product.name} — view ${idx + 1}`}
+                  className="h-full w-full"
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                />
               </div>
             ))}
           </div>

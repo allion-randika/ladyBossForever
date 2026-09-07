@@ -12,6 +12,7 @@ import {
   createGuestOrder,
   validateDiscountCode,
   fetchGiftCardBalance,
+  fetchMyStoreCredit,
   type PaymentMethod,
   type DiscountPreview,
   type GiftCardBalance,
@@ -62,6 +63,16 @@ export default function CheckoutPage() {
   const [giftCardError, setGiftCardError] = useState<string | null>(null);
   const [applyingGiftCard, setApplyingGiftCard] = useState(false);
 
+  const [storeCreditBalance, setStoreCreditBalance] = useState(0);
+  const [storeCreditInput, setStoreCreditInput] = useState(0);
+
+  useEffect(() => {
+    if (!isLoggedIn || !token) return;
+    fetchMyStoreCredit(token)
+      .then((sc) => setStoreCreditBalance(sc.balance))
+      .catch(() => setStoreCreditBalance(0));
+  }, [isLoggedIn, token]);
+
   const cartItems = lines
     .map((line) => ({ line, product: products.find((p) => p.id === line.productId) }))
     .filter(
@@ -71,7 +82,10 @@ export default function CheckoutPage() {
   const subtotal = cartSubtotal(lines, products);
   const afterDiscount = appliedDiscount ? appliedDiscount.total : subtotal;
   const giftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.balance, afterDiscount) : 0;
-  const total = afterDiscount - giftCardAmount;
+  const afterGiftCard = afterDiscount - giftCardAmount;
+  const maxStoreCredit = Math.max(0, Math.min(storeCreditBalance, afterGiftCard));
+  const storeCreditAmount = Math.min(storeCreditInput, maxStoreCredit);
+  const total = afterGiftCard - storeCreditAmount;
 
   async function handleApplyPromo(e: React.FormEvent) {
     e.preventDefault();
@@ -152,6 +166,7 @@ export default function CheckoutPage() {
               paymentMethod,
               discountCode,
               giftCardCode: appliedGiftCardCode,
+              storeCreditAmount: storeCreditAmount > 0 ? storeCreditAmount : undefined,
             })
           : await createGuestOrder({
               items,
@@ -426,6 +441,58 @@ export default function CheckoutPage() {
             {giftCardError && <p className="mt-1.5 text-xs text-rose">{giftCardError}</p>}
           </div>
 
+          {isLoggedIn && storeCreditBalance > 0 && maxStoreCredit > 0 && (
+            <div className="mt-3 border-t border-line pt-3">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-ink">Use store credit</span>
+                <span className="text-xs text-ink-faint">{formatLKR(storeCreditBalance)} available</span>
+              </div>
+              <div className="mt-2.5 flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={maxStoreCredit}
+                  step={maxStoreCredit >= 10 ? 10 : 1}
+                  value={storeCreditAmount}
+                  onChange={(e) => setStoreCreditInput(Number(e.target.value))}
+                  className="h-1.5 flex-1 accent-plum"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={maxStoreCredit}
+                  value={storeCreditAmount}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    setStoreCreditInput(Number.isFinite(n) ? Math.max(0, n) : 0);
+                  }}
+                  className="w-24 shrink-0 rounded-lg border border-line-strong bg-paper-raised px-2.5 py-1.5 text-right text-sm tabular-nums text-ink focus:border-plum focus:outline-none"
+                />
+              </div>
+              <div className="mt-2 flex gap-2">
+                {[25, 50, 100].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setStoreCreditInput(Math.floor((maxStoreCredit * pct) / 100))}
+                    className="rounded-full border border-line-strong px-3 py-1 text-xs font-medium text-ink-soft transition-colors hover:border-plum hover:text-plum"
+                  >
+                    {pct === 100 ? "Max" : `${pct}%`}
+                  </button>
+                ))}
+                {storeCreditAmount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStoreCreditInput(0)}
+                    className="rounded-full border border-line-strong px-3 py-1 text-xs font-medium text-ink-soft transition-colors hover:border-plum hover:text-plum"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm">
             <span className="text-ink-soft">Subtotal</span>
             <span className="tabular-nums text-ink">{formatLKR(subtotal)}</span>
@@ -440,6 +507,12 @@ export default function CheckoutPage() {
             <div className="mt-1.5 flex justify-between text-sm">
               <span className="text-ink-soft">Gift card</span>
               <span className="tabular-nums text-success">&minus;{formatLKR(giftCardAmount)}</span>
+            </div>
+          )}
+          {storeCreditAmount > 0 && (
+            <div className="mt-1.5 flex justify-between text-sm">
+              <span className="text-ink-soft">Store credit</span>
+              <span className="tabular-nums text-success">&minus;{formatLKR(storeCreditAmount)}</span>
             </div>
           )}
           <div className="mt-1.5 flex justify-between text-sm font-medium">

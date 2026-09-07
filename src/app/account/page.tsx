@@ -4,7 +4,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
-import { fetchMyOrders, fetchMyGiftCards, type OrderSummary, type GiftCard } from "@/lib/api";
+import {
+  fetchMyOrders,
+  fetchMyGiftCards,
+  fetchMyProfile,
+  updateMyProfile,
+  fetchMyStoreCredit,
+  type OrderSummary,
+  type GiftCard,
+  type CustomerProfile,
+  type StoreCreditSummary,
+} from "@/lib/api";
 import { clearGuestVisibleData } from "@/lib/session-sync";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -36,6 +46,13 @@ export default function AccountPage() {
   const [giftCards, setGiftCards] = useState<GiftCard[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [storeCredit, setStoreCredit] = useState<StoreCreditSummary | null>(null);
+  const [birthdayInput, setBirthdayInput] = useState("");
+  const [savingBirthday, setSavingBirthday] = useState(false);
+  const [birthdaySaved, setBirthdaySaved] = useState(false);
+  const [birthdayError, setBirthdayError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!hasHydrated) return;
     if (!token) {
@@ -48,7 +65,33 @@ export default function AccountPage() {
     fetchMyGiftCards(token)
       .then(setGiftCards)
       .catch(() => setGiftCards([]));
+    fetchMyProfile(token)
+      .then((p) => {
+        setProfile(p);
+        setBirthdayInput(p.birthday ? p.birthday.slice(0, 10) : "");
+      })
+      .catch(() => setProfile(null));
+    fetchMyStoreCredit(token)
+      .then(setStoreCredit)
+      .catch(() => setStoreCredit(null));
   }, [hasHydrated, token, router]);
+
+  async function handleSaveBirthday(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token || !birthdayInput) return;
+    setBirthdayError(null);
+    setBirthdaySaved(false);
+    setSavingBirthday(true);
+    try {
+      const updated = await updateMyProfile(token, { birthday: birthdayInput });
+      setProfile(updated);
+      setBirthdaySaved(true);
+    } catch (err) {
+      setBirthdayError(err instanceof Error ? err.message : "Couldn't save your birthday");
+    } finally {
+      setSavingBirthday(false);
+    }
+  }
 
   if (!hasHydrated || !token) return null;
 
@@ -70,6 +113,66 @@ export default function AccountPage() {
         >
           Sign out
         </button>
+      </div>
+
+      <div className="mt-10 rounded-2xl border border-line p-5">
+        <h2 className="font-display text-xl text-ink">Birthday</h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          Add your birthday and we&rsquo;ll drop a store credit surprise into your account on the day.
+        </p>
+        <form onSubmit={handleSaveBirthday} className="mt-4 flex flex-wrap items-center gap-3">
+          <input
+            type="date"
+            value={birthdayInput}
+            onChange={(e) => {
+              setBirthdayInput(e.target.value);
+              setBirthdaySaved(false);
+            }}
+            className="rounded-lg border border-line-strong bg-paper-raised px-3.5 py-2.5 text-sm text-ink focus:border-plum focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={savingBirthday || !birthdayInput}
+            className="rounded-full bg-plum px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-plum-deep disabled:opacity-60"
+          >
+            {savingBirthday ? "Saving…" : "Save"}
+          </button>
+          {birthdaySaved && <span className="text-xs font-medium text-success">Saved</span>}
+        </form>
+        {birthdayError && <p className="mt-2 text-xs text-rose">{birthdayError}</p>}
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-line p-5">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="font-display text-xl text-ink">Store credit</h2>
+          <p className="text-lg font-medium tabular-nums text-ink">
+            {formatLKR(storeCredit?.balance ?? profile?.storeCreditBalance ?? 0)}
+          </p>
+        </div>
+        {storeCredit && storeCredit.transactions.length > 0 && (
+          <ul className="mt-4 flex flex-col gap-2">
+            {storeCredit.transactions.map((tx) => (
+              <li key={tx.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-ink-soft">
+                  {tx.reason}
+                  {tx.order && <span className="text-ink-faint"> &middot; Order #{tx.order.number}</span>}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 tabular-nums",
+                    tx.amount >= 0 ? "text-success" : "text-ink-faint"
+                  )}
+                >
+                  {tx.amount >= 0 ? "+" : ""}
+                  {formatLKR(tx.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {storeCredit && storeCredit.transactions.length === 0 && (
+          <p className="mt-4 text-sm text-ink-faint">No store credit activity yet.</p>
+        )}
       </div>
 
       <h2 className="mt-10 mb-4 font-display text-xl text-ink">Order history</h2>
@@ -124,10 +227,15 @@ export default function AccountPage() {
                   {order.giftCard.code} applied &mdash; &minus;{formatLKR(order.giftCardAmount)}
                 </p>
               )}
+              {order.storeCreditAmount > 0 && (
+                <p className={cn("text-xs text-success", order.discount || order.giftCard ? "mt-1" : "mt-3")}>
+                  Store credit applied &mdash; &minus;{formatLKR(order.storeCreditAmount)}
+                </p>
+              )}
               <p
                 className={cn(
                   "text-sm font-medium tabular-nums text-ink",
-                  order.discount || order.giftCard ? "mt-1" : "mt-3"
+                  order.discount || order.giftCard || order.storeCreditAmount > 0 ? "mt-1" : "mt-3"
                 )}
               >
                 Total {formatLKR(order.total)}

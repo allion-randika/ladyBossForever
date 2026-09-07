@@ -144,6 +144,7 @@ export interface CreateOrderInput {
   paymentMethod: PaymentMethod;
   discountCode?: string;
   giftCardCode?: string;
+  storeCreditAmount?: number;
 }
 
 export interface OrderItemSummary {
@@ -161,6 +162,7 @@ export interface OrderSummary {
   subtotal: number;
   discountAmount: number;
   giftCardAmount: number;
+  storeCreditAmount: number;
   total: number;
   createdAt: string;
   items: OrderItemSummary[];
@@ -392,4 +394,46 @@ export function clearServerCart(token: string): Promise<ServerCartLine[]> {
 
 export function syncCart(token: string, lines: ServerCartLine[]): Promise<ServerCartLine[]> {
   return authFetch("/cart/sync", token, { method: "POST", body: { lines } });
+}
+
+// ---------- Profile ----------
+
+export interface CustomerProfile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  birthday: string | null;
+  storeCreditBalance: number;
+}
+
+export function fetchMyProfile(token: string): Promise<CustomerProfile> {
+  return authFetch("/auth/me/profile", token);
+}
+
+export function updateMyProfile(
+  token: string,
+  input: { birthday?: string }
+): Promise<CustomerProfile> {
+  return authFetch("/auth/me/profile", token, { method: "PATCH", body: input });
+}
+
+// ---------- Store credit ----------
+
+export interface StoreCreditTransaction {
+  id: string;
+  amount: number;
+  reason: string;
+  createdAt: string;
+  order: { number: string } | null;
+}
+
+export interface StoreCreditSummary {
+  balance: number;
+  transactions: StoreCreditTransaction[];
+}
+
+export function fetchMyStoreCredit(token: string): Promise<StoreCreditSummary> {
+  return authFetch("/store-credit/me", token);
 }

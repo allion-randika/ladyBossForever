@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
-import { fetchAccountsSummary, fetchProfitability, type AccountsSummary, type ProductProfit } from "@/lib/api";
+import {
+  fetchAccountsSummary,
+  fetchProfitability,
+  runBirthdayCheck,
+  type AccountsSummary,
+  type ProductProfit,
+} from "@/lib/api";
 import { formatLKR } from "@/lib/format";
 
 function StatCard({ label, value, tone }: { label: string; value: string; tone?: "success" | "danger" }) {
@@ -26,6 +32,9 @@ export default function AccountsPage() {
   const [profitability, setProfitability] = useState<ProductProfit[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [checkingBirthdays, setCheckingBirthdays] = useState(false);
+  const [birthdayResult, setBirthdayResult] = useState<string | null>(null);
+
   useEffect(() => {
     if (!token) return;
     fetchAccountsSummary(token)
@@ -36,9 +45,40 @@ export default function AccountsPage() {
       .catch(() => {});
   }, [token]);
 
+  async function handleRunBirthdayCheck() {
+    if (!token) return;
+    setCheckingBirthdays(true);
+    setBirthdayResult(null);
+    try {
+      const { rewarded } = await runBirthdayCheck(token);
+      setBirthdayResult(
+        rewarded === 0
+          ? "No birthdays today."
+          : `Rewarded ${rewarded} customer${rewarded === 1 ? "" : "s"} with a birthday bonus.`
+      );
+    } catch (err) {
+      setBirthdayResult(err instanceof Error ? err.message : "Failed to run birthday check");
+    } finally {
+      setCheckingBirthdays(false);
+    }
+  }
+
   return (
     <div>
-      <h1 className="text-xl font-semibold text-ink">Accounts</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold text-ink">Accounts</h1>
+        <div className="flex items-center gap-3">
+          {birthdayResult && <p className="text-xs text-ink-faint">{birthdayResult}</p>}
+          <button
+            type="button"
+            onClick={handleRunBirthdayCheck}
+            disabled={checkingBirthdays}
+            className="rounded-md border border-line bg-paper-raised px-3.5 py-2 text-sm font-medium text-ink transition hover:border-plum disabled:opacity-60"
+          >
+            {checkingBirthdays ? "Running…" : "Run birthday check"}
+          </button>
+        </div>
+      </div>
 
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 

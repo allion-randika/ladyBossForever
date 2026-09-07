@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
 import { fetchCustomers, type CustomerListItem } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatLKR } from "@/lib/format";
 
 export default function CustomersPage() {
   const token = useAuthStore((s) => s.token);
@@ -34,6 +34,7 @@ export default function CustomersPage() {
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Phone</th>
               <th className="px-4 py-3 font-medium">Orders</th>
+              <th className="px-4 py-3 font-medium">Store credit</th>
               <th className="px-4 py-3 font-medium">Joined</th>
             </tr>
           </thead>
@@ -48,6 +49,9 @@ export default function CustomersPage() {
                 <td className="px-4 py-3 text-ink-soft">{c.email}</td>
                 <td className="px-4 py-3 text-ink-soft">{c.phone ?? "—"}</td>
                 <td className="px-4 py-3 tabular-nums text-ink-soft">{c._count.orders}</td>
+                <td className="px-4 py-3 tabular-nums text-ink-soft">
+                  {c.storeCreditBalance > 0 ? formatLKR(c.storeCreditBalance) : "—"}
+                </td>
                 <td className="px-4 py-3 text-ink-soft">{formatDate(c.createdAt)}</td>
               </tr>
             ))}

@@ -228,6 +228,8 @@ export interface CustomerListItem {
   firstName: string;
   lastName: string;
   phone: string | null;
+  birthday: string | null;
+  storeCreditBalance: number;
   createdAt: string;
   _count: { orders: number };
 }
@@ -515,4 +517,35 @@ export function fetchAccountsSummary(token: string): Promise<AccountsSummary> {
 
 export function fetchProfitability(token: string): Promise<ProductProfit[]> {
   return request("/accounts/profitability", { token });
+}
+
+// ---------- Store credit ----------
+
+export interface StoreCreditTransaction {
+  id: string;
+  amount: number;
+  reason: string;
+  createdAt: string;
+  order: { number: string } | null;
+}
+
+export interface StoreCreditLedger {
+  balance: number;
+  transactions: StoreCreditTransaction[];
+}
+
+export function fetchCustomerStoreCredit(token: string, customerId: string): Promise<StoreCreditLedger> {
+  return request(`/store-credit/customers/${customerId}`, { token });
+}
+
+export function grantStoreCredit(
+  token: string,
+  customerId: string,
+  input: { amount: number; reason: string }
+): Promise<{ id: string; email: string; storeCreditBalance: number }> {
+  return request(`/store-credit/customers/${customerId}/grant`, { method: "POST", token, body: input });
+}
+
+export function runBirthdayCheck(token: string): Promise<{ rewarded: number }> {
+  return request("/store-credit/run-birthday-check", { method: "POST", token });
 }

@@ -62,6 +62,15 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   giftCardCode?: string;
+
+  // How much store credit the customer wants to apply, in LKR — their
+  // choice, not all-or-nothing. Only meaningful for logged-in checkout;
+  // guest orders ignore this even if sent. Re-capped server-side against
+  // the real balance and what's still owed — see OrdersService.
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  storeCreditAmount?: number;
 }
 
 export class CreateGuestOrderDto extends CreateOrderDto {

@@ -7,6 +7,8 @@ const CUSTOMER_LIST_SELECT = {
   firstName: true,
   lastName: true,
   phone: true,
+  birthday: true,
+  storeCreditBalance: true,
   createdAt: true,
   _count: { select: { orders: true } },
 } as const;

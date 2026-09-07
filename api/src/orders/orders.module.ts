@@ -5,9 +5,16 @@ import { PaymentsModule } from '../payments/payments.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { DiscountsModule } from '../discounts/discounts.module';
 import { GiftCardsModule } from '../gift-cards/gift-cards.module';
+import { StoreCreditModule } from '../store-credit/store-credit.module';
 
 @Module({
-  imports: [PaymentsModule, AuditLogModule, DiscountsModule, GiftCardsModule],
+  imports: [
+    PaymentsModule,
+    AuditLogModule,
+    DiscountsModule,
+    GiftCardsModule,
+    StoreCreditModule,
+  ],
   providers: [OrdersService],
   controllers: [OrdersController],
 })

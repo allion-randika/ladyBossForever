@@ -8,9 +8,20 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import type { UpdateProfileDto } from './dto/update-profile.dto';
 import type { JwtPayload } from './auth.types';
 
 const SALT_ROUNDS = 10;
+
+const PROFILE_SELECT = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  birthday: true,
+  storeCreditBalance: true,
+} as const;
 
 @Injectable()
 export class AuthService {
@@ -101,6 +112,21 @@ export class AuthService {
         role: admin.role,
       },
     };
+  }
+
+  getProfile(customerId: string) {
+    return this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: PROFILE_SELECT,
+    });
+  }
+
+  updateProfile(customerId: string, dto: UpdateProfileDto) {
+    return this.prisma.customer.update({
+      where: { id: customerId },
+      data: { birthday: dto.birthday ? new Date(dto.birthday) : undefined },
+      select: PROFILE_SELECT,
+    });
   }
 
   private buildCustomerSession(id: string, email: string) {

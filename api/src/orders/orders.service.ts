@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { DiscountsService } from '../discounts/discounts.service';
 import { GiftCardsService } from '../gift-cards/gift-cards.service';
+import { StoreCreditService } from '../store-credit/store-credit.service';
 import type {
   CreateGuestOrderDto,
   CreateOrderDto,
@@ -42,6 +43,7 @@ export class OrdersService {
     private readonly payments: PaymentsService,
     private readonly discounts: DiscountsService,
     private readonly giftCards: GiftCardsService,
+    private readonly storeCredit: StoreCreditService,
   ) {}
 
   async create(customerId: string, dto: CreateOrderDto) {
@@ -53,6 +55,7 @@ export class OrdersService {
       undefined,
       dto.discountCode,
       dto.giftCardCode,
+      dto.storeCreditAmount,
     );
     const payment = await this.payments.initiate(order, dto.paymentMethod);
     return { order, payment };
@@ -188,6 +191,7 @@ export class OrdersService {
     guestToken?: string,
     discountCode?: string,
     giftCardCode?: string,
+    requestedStoreCredit?: number,
   ) {
     const variantIds = items.map((i) => i.variantId);
     const variants = await this.prisma.productVariant.findMany({
@@ -237,7 +241,20 @@ export class OrdersService {
       ? await this.giftCards.validateForRedemption(giftCardCode, afterDiscount)
       : null;
     const giftCardAmount = giftCardApplication?.amountApplied ?? 0;
-    const total = afterDiscount - giftCardAmount;
+    const afterGiftCard = afterDiscount - giftCardAmount;
+
+    // Same principle again: the customer's requested amount is capped at
+    // what's still owed and re-validated against their real balance
+    // server-side — never trusted as-is from the client.
+    const storeCreditApplication = requestedStoreCredit
+      ? await this.storeCredit.validateForRedemption(
+          customerId,
+          requestedStoreCredit,
+          afterGiftCard,
+        )
+      : null;
+    const storeCreditAmount = storeCreditApplication?.amountApplied ?? 0;
+    const total = afterGiftCard - storeCreditAmount;
 
     return this.prisma.$transaction(async (tx) => {
       const address = await tx.address.create({
@@ -256,6 +273,7 @@ export class OrdersService {
           discountAmount,
           giftCardId: giftCardApplication?.giftCard.id,
           giftCardAmount,
+          storeCreditAmount,
           guestToken,
           items: {
             create: items.map((item) => {
@@ -284,6 +302,15 @@ export class OrdersService {
           tx,
           giftCardApplication.giftCard.id,
           giftCardAmount,
+        );
+      }
+
+      if (storeCreditAmount > 0) {
+        await this.storeCredit.redeem(
+          tx,
+          customerId,
+          storeCreditAmount,
+          created.id,
         );
       }
 

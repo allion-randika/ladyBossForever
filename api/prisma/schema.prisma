@@ -30,13 +30,23 @@ model Customer {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Denormalized running balance — kept in sync with the transaction
+  // ledger below on every grant/redeem so reads (checkout, account page)
+  // don't need to sum the ledger every time.
+  storeCreditBalance Int @default(0)
+
+  // Guards the birthday bonus against firing more than once in the same
+  // year — null means "never rewarded yet".
+  lastBirthdayRewardAt DateTime?
+
   addresses Address[]
   orders    Order[]
   wishlist  WishlistItem[]
   cartItems CartItem[]
   reviews   Review[]
 
-  purchasedGiftCards GiftCard[] @relation("PurchasedGiftCards")
+  purchasedGiftCards      GiftCard[]               @relation("PurchasedGiftCards")
+  storeCreditTransactions StoreCreditTransaction[]
 
   @@map("customers")
 }
@@ -230,10 +240,18 @@ model Order {
   giftCardId     String?
   giftCardAmount Int       @default(0)
 
+  // Store credit applied, if any — snapshotted the same way as the two
+  // above. Unlike gift cards, this isn't a separate redeemable record; it
+  // comes straight out of the customer's own wallet, so there's no FK here
+  // (the customerId above is enough), just the ledger entry created
+  // alongside it (see StoreCreditTransaction.orderId).
+  storeCreditAmount Int @default(0)
+
   subtotal Int
   total    Int
 
-  items OrderItem[]
+  items                   OrderItem[]
+  storeCreditTransactions StoreCreditTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -429,6 +447,30 @@ model Expense {
 
   @@index([incurredAt])
   @@map("expenses")
+}
+
+// ---------- Loyalty ----------
+
+model StoreCreditTransaction {
+  id String @id @default(cuid())
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  // Positive = credit granted (admin grant, birthday bonus, refund);
+  // negative = redeemed at checkout.
+  amount Int
+  reason String
+
+  // Set only for a checkout redemption — ties the ledger entry back to the
+  // order it paid for.
+  order   Order?  @relation(fields: [orderId], references: [id])
+  orderId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+  @@map("store_credit_transactions")
 }
 
 // ---------- Admin governance ----------

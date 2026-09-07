@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${workSans.variable} h-full antialiased`}>
-      <body className="min-h-full bg-paper text-ink">
+    <html lang="en" className={`${workSans.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full bg-paper text-ink" suppressHydrationWarning>
         <ConfirmProvider>{children}</ConfirmProvider>
       </body>
     </html>

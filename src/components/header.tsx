@@ -54,7 +54,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-ink lg:hidden"
+            className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-ink xl:hidden"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" strokeWidth={1.75} />
@@ -64,7 +64,7 @@ export function Header() {
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-5 xl:flex">
           {CATEGORIES.map((c) => (
             <Link
               key={c.slug}
@@ -139,7 +139,7 @@ export function Header() {
           <AnimatePresence>
             {menuOpen && (
               <motion.div
-                className="fixed inset-0 z-50 lg:hidden"
+                className="fixed inset-0 z-50 xl:hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}

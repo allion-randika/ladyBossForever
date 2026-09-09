@@ -84,7 +84,7 @@ export function ProductDetail({ product }: { product: Product }) {
           <div
             ref={galleryRef}
             onScroll={handleGalleryScroll}
-            className="no-scrollbar h-[70vh] flex-1 snap-y snap-mandatory overflow-y-auto rounded-2xl bg-cream lg:h-[calc(100vh-7rem)]"
+            className="no-scrollbar h-[70vh] max-h-[720px] flex-1 snap-y snap-mandatory overflow-y-auto rounded-2xl bg-cream lg:h-[calc(100vh-7rem)] lg:max-h-[820px]"
           >
             {gallery.map((idx) => (
               <div key={idx} className="relative h-full w-full shrink-0 snap-start snap-always">

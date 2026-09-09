@@ -17,6 +17,7 @@ import {
   Landmark,
   ScrollText,
   Mail,
+  Undo2,
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
@@ -26,6 +27,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; roles?: 
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/products", label: "Products", icon: Package },
   { href: "/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/returns", label: "Returns", icon: Undo2, roles: ["ORDER_MANAGER"] },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/promotions", label: "Promotions", icon: Tag, roles: ["MARKETING_MANAGER"] },
   { href: "/gift-cards", label: "Gift cards", icon: Gift, roles: ["ACCOUNTANT"] },

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth-store";
-import { fetchDashboardSummary, type DashboardSummary } from "@/lib/api";
+import { fetchDashboardSummary, fetchMerchandisingSummary, type DashboardSummary, type MerchandisingSummary } from "@/lib/api";
 import { formatLKR } from "@/lib/format";
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -18,6 +18,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 export default function DashboardPage() {
   const token = useAuthStore((s) => s.token);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [merchandising, setMerchandising] = useState<MerchandisingSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,6 +26,9 @@ export default function DashboardPage() {
     fetchDashboardSummary(token)
       .then(setSummary)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"));
+    fetchMerchandisingSummary(token)
+      .then(setMerchandising)
+      .catch(() => {});
   }, [token]);
 
   return (
@@ -61,6 +65,39 @@ export default function DashboardPage() {
               {summary.topProducts.length === 0 && <p className="py-2.5 text-sm text-ink-faint">No sales yet.</p>}
             </div>
           </div>
+
+          {merchandising && (
+            <>
+              <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <StatCard label="Units sold" value={String(merchandising.totalSold)} />
+                <StatCard label="Units returned" value={String(merchandising.totalReturned)} />
+                <StatCard label="Return rate" value={`${(merchandising.returnRate * 100).toFixed(1)}%`} />
+              </div>
+
+              <div className="mt-6 rounded-lg border border-line bg-paper-raised p-5">
+                <h2 className="text-sm font-medium text-ink">Best-selling size/colour by category</h2>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  {merchandising.bestSellingByCategory.map((cat) => (
+                    <div key={cat.slug}>
+                      <p className="text-xs font-medium tracking-wide text-ink-faint uppercase">{cat.label}</p>
+                      <ul className="mt-1.5 space-y-1">
+                        {cat.topCombos.map((c) => (
+                          <li key={c.combo} className="flex justify-between text-sm">
+                            <span className="text-ink-soft">{c.combo}</span>
+                            <span className="tabular-nums text-ink">{c.unitsSold} sold</span>
+                          </li>
+                        ))}
+                        {cat.topCombos.length === 0 && <li className="text-sm text-ink-faint">No sales yet</li>}
+                      </ul>
+                    </div>
+                  ))}
+                  {merchandising.bestSellingByCategory.length === 0 && (
+                    <p className="text-sm text-ink-faint">No sales yet.</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

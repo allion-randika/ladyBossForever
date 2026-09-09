@@ -577,3 +577,58 @@ export function fetchEmailLog(token: string): Promise<EmailLogEntry[]> {
 export function runAbandonedCartCheck(token: string): Promise<{ remindersSent: number }> {
   return request("/marketing/run-abandoned-cart-check", { method: "POST", token });
 }
+
+// ---------- Returns & exchanges ----------
+
+export type ReturnRequestType = "RETURN" | "EXCHANGE";
+export type ReturnRequestStatus = "REQUESTED" | "REJECTED" | "REFUNDED" | "EXCHANGED";
+
+export interface ReturnRequestEntry {
+  id: string;
+  type: ReturnRequestType;
+  status: ReturnRequestStatus;
+  qty: number;
+  reason: string;
+  adminNote: string | null;
+  createdAt: string;
+  order: { number: string };
+  orderItem: {
+    unitPrice: number;
+    product: { name: string };
+    variant: { size: string; color: string };
+  };
+  exchangeVariant: { size: string; color: string } | null;
+  customer: { firstName: string; lastName: string; email: string };
+}
+
+export function fetchAllReturnRequests(
+  token: string,
+  status?: ReturnRequestStatus
+): Promise<ReturnRequestEntry[]> {
+  return request("/returns/admin/all", { token, query: { status } });
+}
+
+export function decideReturnRequest(
+  token: string,
+  id: string,
+  input: { decision: "APPROVE" | "REJECT"; adminNote?: string }
+): Promise<ReturnRequestEntry> {
+  return request(`/returns/${id}/decide`, { method: "PATCH", token, body: input });
+}
+
+// ---------- Merchandising analytics ----------
+
+export interface MerchandisingSummary {
+  bestSellingByCategory: {
+    slug: string;
+    label: string;
+    topCombos: { combo: string; unitsSold: number }[];
+  }[];
+  returnRate: number;
+  totalSold: number;
+  totalReturned: number;
+}
+
+export function fetchMerchandisingSummary(token: string): Promise<MerchandisingSummary> {
+  return request("/dashboard/merchandising", { token });
+}

@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getRelatedProducts } from "@/lib/products";
-import { fetchProductBySlug, fetchProducts, fetchProductReviews } from "@/lib/api";
+import { fetchProductBySlug, fetchProductReviews, fetchRecommendations } from "@/lib/api";
 import { ProductDetail } from "@/components/product-detail";
 import { ProductCard } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
@@ -16,11 +15,10 @@ export default async function ProductPage({
   const product = await fetchProductBySlug(slug);
   if (!product) notFound();
 
-  const [categoryProducts, reviews] = await Promise.all([
-    fetchProducts({ category: product.category }),
+  const [related, reviews] = await Promise.all([
+    fetchRecommendations(product.id).catch(() => []),
     fetchProductReviews(product.id).catch(() => ({ reviews: [], averageRating: 0, count: 0 })),
   ]);
-  const related = getRelatedProducts(categoryProducts, product);
 
   const jsonLd = {
     "@context": "https://schema.org",

@@ -90,6 +90,11 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
   }
 }
 
+export async function fetchRecommendations(productId: string): Promise<Product[]> {
+  const data = await apiFetch<ApiProduct[]>(`/products/${productId}/recommendations`);
+  return data.map(mapApiProduct);
+}
+
 // ---------- Auth ----------
 
 export interface AuthSession {
@@ -148,6 +153,7 @@ export interface CreateOrderInput {
 }
 
 export interface OrderItemSummary {
+  id: string;
   qty: number;
   unitPrice: number;
   product: { name: string; slug: string };
@@ -436,4 +442,34 @@ export interface StoreCreditSummary {
 
 export function fetchMyStoreCredit(token: string): Promise<StoreCreditSummary> {
   return authFetch("/store-credit/me", token);
+}
+
+// ---------- Returns & exchanges ----------
+
+export type ReturnRequestType = "RETURN" | "EXCHANGE";
+export type ReturnRequestStatus = "REQUESTED" | "REJECTED" | "REFUNDED" | "EXCHANGED";
+
+export interface ReturnRequestSummary {
+  id: string;
+  orderItemId: string;
+  type: ReturnRequestType;
+  status: ReturnRequestStatus;
+  qty: number;
+  reason: string;
+  adminNote: string | null;
+  createdAt: string;
+  order: { number: string };
+  orderItem: { product: { name: string }; variant: { size: string; color: string } };
+  exchangeVariant: { size: string; color: string } | null;
+}
+
+export function fetchMyReturnRequests(token: string): Promise<ReturnRequestSummary[]> {
+  return authFetch("/returns/mine", token);
+}
+
+export function createReturnRequest(
+  token: string,
+  input: { orderItemId: string; type: ReturnRequestType; qty: number; reason: string; exchangeVariantId?: string }
+): Promise<ReturnRequestSummary> {
+  return authFetch("/returns", token, { method: "POST", body: input });
 }

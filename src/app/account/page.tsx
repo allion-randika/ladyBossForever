@@ -10,14 +10,19 @@ import {
   fetchMyProfile,
   updateMyProfile,
   fetchMyStoreCredit,
+  fetchMyReturnRequests,
   type OrderSummary,
   type GiftCard,
   type CustomerProfile,
   type StoreCreditSummary,
+  type ReturnRequestSummary,
 } from "@/lib/api";
 import { clearGuestVisibleData } from "@/lib/session-sync";
 import { formatLKR } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { ReturnRequestPanel } from "@/components/return-request-panel";
+
+const RETURN_ELIGIBLE_STATUSES: OrderSummary["status"][] = ["PAID", "FULFILLED"];
 
 const STATUS_LABEL: Record<OrderSummary["status"], string> = {
   PENDING: "Payment pending",
@@ -48,6 +53,7 @@ export default function AccountPage() {
 
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [storeCredit, setStoreCredit] = useState<StoreCreditSummary | null>(null);
+  const [returnRequests, setReturnRequests] = useState<ReturnRequestSummary[]>([]);
   const [birthdayInput, setBirthdayInput] = useState("");
   const [savingBirthday, setSavingBirthday] = useState(false);
   const [birthdaySaved, setBirthdaySaved] = useState(false);
@@ -74,6 +80,9 @@ export default function AccountPage() {
     fetchMyStoreCredit(token)
       .then(setStoreCredit)
       .catch(() => setStoreCredit(null));
+    fetchMyReturnRequests(token)
+      .then(setReturnRequests)
+      .catch(() => setReturnRequests([]));
   }, [hasHydrated, token, router]);
 
   async function handleSaveBirthday(e: React.FormEvent) {
@@ -210,10 +219,19 @@ export default function AccountPage() {
                   day: "numeric",
                 })}
               </p>
-              <ul className="mt-3 flex flex-col gap-1">
-                {order.items.map((item, i) => (
-                  <li key={i} className="text-sm text-ink-soft">
+              <ul className="mt-3 flex flex-col gap-2">
+                {order.items.map((item) => (
+                  <li key={item.id} className="text-sm text-ink-soft">
                     {item.qty} &times; {item.product.name} ({item.variant.color}, {item.variant.size})
+                    {token && (
+                      <ReturnRequestPanel
+                        token={token}
+                        item={item}
+                        eligible={RETURN_ELIGIBLE_STATUSES.includes(order.status)}
+                        existingRequests={returnRequests.filter((r) => r.orderItemId === item.id)}
+                        onRequested={(r) => setReturnRequests((prev) => [r, ...prev])}
+                      />
+                    )}
                   </li>
                 ))}
               </ul>

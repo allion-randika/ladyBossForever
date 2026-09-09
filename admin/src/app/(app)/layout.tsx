@@ -16,6 +16,7 @@ import {
   Receipt,
   Landmark,
   ScrollText,
+  Mail,
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
@@ -33,6 +34,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; roles?: 
   { href: "/banners", label: "Banners", icon: ImageIcon, roles: ["MARKETING_MANAGER"] },
   { href: "/expenses", label: "Expenses", icon: Receipt, roles: ["ACCOUNTANT"] },
   { href: "/accounts", label: "Accounts", icon: Landmark, roles: ["ACCOUNTANT"] },
+  { href: "/marketing", label: "Marketing", icon: Mail, roles: ["MARKETING_MANAGER"] },
   // Empty roles list — visible to SUPER_ADMIN only, via the bypass below.
   { href: "/audit-log", label: "Audit log", icon: ScrollText, roles: [] },
 ];

@@ -549,3 +549,31 @@ export function grantStoreCredit(
 export function runBirthdayCheck(token: string): Promise<{ rewarded: number }> {
   return request("/store-credit/run-birthday-check", { method: "POST", token });
 }
+
+// ---------- Marketing automation ----------
+
+export type EmailType =
+  | "WELCOME"
+  | "ORDER_CONFIRMATION"
+  | "ABANDONED_CART"
+  | "BACK_IN_STOCK"
+  | "PRICE_DROP"
+  | "BIRTHDAY_BONUS";
+
+export interface EmailLogEntry {
+  id: string;
+  type: EmailType;
+  to: string;
+  subject: string;
+  metadata: Record<string, unknown> | null;
+  sentAt: string;
+  customer: { firstName: string; lastName: string } | null;
+}
+
+export function fetchEmailLog(token: string): Promise<EmailLogEntry[]> {
+  return request("/marketing/email-log", { token });
+}
+
+export function runAbandonedCartCheck(token: string): Promise<{ remindersSent: number }> {
+  return request("/marketing/run-abandoned-cart-check", { method: "POST", token });
+}

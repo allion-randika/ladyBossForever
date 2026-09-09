@@ -12,6 +12,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { DiscountsService } from '../discounts/discounts.service';
 import { GiftCardsService } from '../gift-cards/gift-cards.service';
 import { StoreCreditService } from '../store-credit/store-credit.service';
+import { EmailService } from '../email/email.service';
 import type {
   CreateGuestOrderDto,
   CreateOrderDto,
@@ -44,6 +45,7 @@ export class OrdersService {
     private readonly discounts: DiscountsService,
     private readonly giftCards: GiftCardsService,
     private readonly storeCredit: StoreCreditService,
+    private readonly email: EmailService,
   ) {}
 
   async create(customerId: string, dto: CreateOrderDto) {
@@ -137,11 +139,13 @@ export class OrdersService {
     if (order.status !== OrderStatus.PENDING) {
       return order;
     }
-    return this.prisma.order.update({
+    const confirmed = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.PAID },
       include: ORDER_INCLUDE,
     });
+    await this.email.sendOrderConfirmation(confirmed.customerId, confirmed);
+    return confirmed;
   }
 
   private assertAccess(order: Order, requester: OrderRequester) {
@@ -320,6 +324,13 @@ export class OrdersService {
           data: { stock: { decrement: item.qty } },
         });
       }
+
+      // The storefront only clears its local cart state on order placement,
+      // not the server-synced cart — without this, a logged-in customer's
+      // just-purchased items would sit in cart_items forever and the
+      // abandoned-cart automation would keep nagging them about an order
+      // they already completed.
+      await tx.cartItem.deleteMany({ where: { customerId } });
 
       return created;
     });

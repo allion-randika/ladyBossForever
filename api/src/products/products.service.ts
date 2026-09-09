@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import type { QueryProductsDto } from './dto/query-products.dto';
 import type { CreateProductDto } from './dto/create-product.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
@@ -14,7 +15,10 @@ const ADMIN_PRODUCT_INCLUDE = { category: true, variants: true } as const;
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly email: EmailService,
+  ) {}
 
   findAll(query: QueryProductsDto) {
     const q = query.q?.trim();
@@ -97,13 +101,17 @@ export class ProductsService {
   }
 
   async update(id: string, dto: UpdateProductDto) {
-    await this.findByIdOrThrow(id);
+    const before = await this.findByIdOrThrow(id);
     try {
-      return await this.prisma.product.update({
+      const updated = await this.prisma.product.update({
         where: { id },
         data: dto,
         include: ADMIN_PRODUCT_INCLUDE,
       });
+      if (typeof dto.price === 'number' && dto.price < before.price) {
+        await this.email.sendPriceDropAlert(id, before.price, dto.price);
+      }
+      return updated;
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -155,6 +163,9 @@ export class ProductsService {
       where: { id: variantId },
       data: dto,
     });
+    if (variant.stock === 0 && typeof dto.stock === 'number' && dto.stock > 0) {
+      await this.email.sendBackInStockAlert(productId);
+    }
     return this.findByIdOrThrow(productId);
   }
 

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 // A flat bonus rather than a configurable admin setting — one number,
 // easy to change in code, not worth a whole settings model for MVP.
@@ -15,7 +16,10 @@ export interface StoreCreditApplication {
 export class StoreCreditService {
   private readonly logger = new Logger(StoreCreditService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly email: EmailService,
+  ) {}
 
   async grant(customerId: string, amount: number, reason: string) {
     const [, customer] = await this.prisma.$transaction([
@@ -121,6 +125,7 @@ export class StoreCreditService {
         where: { id: customer.id },
         data: { lastBirthdayRewardAt: now },
       });
+      await this.email.sendBirthdayBonus(customer.id, BIRTHDAY_BONUS_AMOUNT);
       rewarded++;
     }
 

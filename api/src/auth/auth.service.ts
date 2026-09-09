@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
@@ -28,6 +29,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly email: EmailService,
   ) {}
 
   async registerCustomer(dto: RegisterDto) {
@@ -54,6 +56,7 @@ export class AuthService {
           lastName: dto.lastName,
         },
       });
+      await this.email.sendWelcome(upgraded.id);
       return this.buildCustomerSession(upgraded.id, upgraded.email);
     }
 
@@ -66,6 +69,7 @@ export class AuthService {
       },
     });
 
+    await this.email.sendWelcome(customer.id);
     return this.buildCustomerSession(customer.id, customer.email);
   }
 

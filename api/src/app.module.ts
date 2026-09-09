@@ -20,6 +20,8 @@ import { BannersModule } from './banners/banners.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { AccountsModule } from './accounts/accounts.module';
 import { StoreCreditModule } from './store-credit/store-credit.module';
+import { EmailModule } from './email/email.module';
+import { MarketingModule } from './marketing/marketing.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { StoreCreditModule } from './store-credit/store-credit.module';
     ExpensesModule,
     AccountsModule,
     StoreCreditModule,
+    EmailModule,
+    MarketingModule,
   ],
   controllers: [AppController],
 })

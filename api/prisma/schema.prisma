@@ -48,6 +48,9 @@ model Customer {
   purchasedGiftCards      GiftCard[]               @relation("PurchasedGiftCards")
   storeCreditTransactions StoreCreditTransaction[]
 
+  emailLogs    EmailLog[]
+  cartReminder CartReminder?
+
   @@map("customers")
 }
 
@@ -471,6 +474,55 @@ model StoreCreditTransaction {
 
   @@index([customerId])
   @@map("store_credit_transactions")
+}
+
+// ---------- Marketing automation ----------
+
+enum EmailType {
+  WELCOME
+  ORDER_CONFIRMATION
+  ABANDONED_CART
+  BACK_IN_STOCK
+  PRICE_DROP
+  BIRTHDAY_BONUS
+}
+
+// Every automated email is recorded here instead of actually being sent —
+// see EmailModule's MockEmailProvider. Doubles as the admin-visible proof
+// that the automation fired, until a real provider (Resend/SES) is wired in.
+model EmailLog {
+  id      String    @id @default(cuid())
+  type    EmailType
+  to      String
+  subject String
+
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+
+  metadata Json?
+
+  sentAt DateTime @default(now())
+
+  @@index([customerId])
+  @@index([type])
+  @@map("email_logs")
+}
+
+// One row per customer, tracking abandoned-cart reminder progress so the
+// hourly check doesn't re-send the same stage — and resets automatically
+// once the cart's contents change (a new cartUpdatedAt snapshot).
+model CartReminder {
+  id String @id @default(cuid())
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String   @unique
+
+  stage         Int      @default(0) // 0 = none, 1 = 1h, 2 = 24h, 3 = 48h
+  cartUpdatedAt DateTime // snapshot of cart activity this stage was sent for
+
+  updatedAt DateTime @updatedAt
+
+  @@map("cart_reminders")
 }
 
 // ---------- Admin governance ----------

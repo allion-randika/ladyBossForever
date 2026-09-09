@@ -22,6 +22,7 @@ import { AccountsModule } from './accounts/accounts.module';
 import { StoreCreditModule } from './store-credit/store-credit.module';
 import { EmailModule } from './email/email.module';
 import { MarketingModule } from './marketing/marketing.module';
+import { ReturnsModule } from './returns/returns.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { MarketingModule } from './marketing/marketing.module';
     StoreCreditModule,
     EmailModule,
     MarketingModule,
+    ReturnsModule,
   ],
   controllers: [AppController],
 })

@@ -60,4 +60,76 @@ export class DashboardService {
       topProducts,
     };
   }
+
+  /**
+   * Best-selling size/colour combos per category, and an overall return
+   * rate — all derivable from order data already in the database. Deliberately
+   * not product-view or add-to-cart funnel tracking: that needs new event
+   * logging infrastructure, which Phase 6 already decided to defer to a
+   * pluggable analytics layer (GA4/PostHog) rather than roll in-house.
+   */
+  async getMerchandising() {
+    const [soldItems, returnedAgg, totalSoldAgg] = await Promise.all([
+      this.prisma.orderItem.findMany({
+        where: { order: { status: { in: REVENUE_STATUSES } } },
+        select: {
+          qty: true,
+          variant: {
+            select: {
+              size: true,
+              color: true,
+              product: {
+                select: {
+                  category: { select: { slug: true, label: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.returnRequest.aggregate({
+        where: { status: { in: ['REFUNDED', 'EXCHANGED'] } },
+        _sum: { qty: true },
+      }),
+      this.prisma.orderItem.aggregate({
+        where: { order: { status: { in: REVENUE_STATUSES } } },
+        _sum: { qty: true },
+      }),
+    ]);
+
+    const byCategory = new Map<
+      string,
+      { label: string; combos: Map<string, number> }
+    >();
+    for (const item of soldItems) {
+      const { slug, label } = item.variant.product.category;
+      const comboKey = `${item.variant.color} / ${item.variant.size}`;
+      if (!byCategory.has(slug)) {
+        byCategory.set(slug, { label, combos: new Map() });
+      }
+      const entry = byCategory.get(slug)!;
+      entry.combos.set(comboKey, (entry.combos.get(comboKey) ?? 0) + item.qty);
+    }
+
+    const bestSellingByCategory = Array.from(byCategory.entries())
+      .map(([slug, { label, combos }]) => ({
+        slug,
+        label,
+        topCombos: Array.from(combos.entries())
+          .map(([combo, unitsSold]) => ({ combo, unitsSold }))
+          .sort((a, b) => b.unitsSold - a.unitsSold)
+          .slice(0, 3),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    const totalSold = totalSoldAgg._sum.qty ?? 0;
+    const totalReturned = returnedAgg._sum.qty ?? 0;
+
+    return {
+      bestSellingByCategory,
+      returnRate: totalSold > 0 ? totalReturned / totalSold : 0,
+      totalSold,
+      totalReturned,
+    };
+  }
 }

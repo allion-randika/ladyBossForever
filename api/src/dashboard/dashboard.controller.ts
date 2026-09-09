@@ -12,4 +12,9 @@ export class DashboardController {
   getSummary() {
     return this.dashboardService.getSummary();
   }
+
+  @Get('merchandising')
+  getMerchandising() {
+    return this.dashboardService.getMerchandising();
+  }
 }

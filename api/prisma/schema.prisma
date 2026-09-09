@@ -48,8 +48,9 @@ model Customer {
   purchasedGiftCards      GiftCard[]               @relation("PurchasedGiftCards")
   storeCreditTransactions StoreCreditTransaction[]
 
-  emailLogs    EmailLog[]
-  cartReminder CartReminder?
+  emailLogs      EmailLog[]
+  cartReminder   CartReminder?
+  returnRequests ReturnRequest[]
 
   @@map("customers")
 }
@@ -155,7 +156,8 @@ model ProductVariant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderItems OrderItem[]
+  orderItems       OrderItem[]
+  exchangeRequests ReturnRequest[]
 
   @@unique([productId, size, color])
   @@map("product_variants")
@@ -255,6 +257,7 @@ model Order {
 
   items                   OrderItem[]
   storeCreditTransactions StoreCreditTransaction[]
+  returnRequests          ReturnRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -278,6 +281,8 @@ model OrderItem {
 
   qty       Int
   unitPrice Int
+
+  returnRequests ReturnRequest[]
 
   @@map("order_items")
 }
@@ -474,6 +479,56 @@ model StoreCreditTransaction {
 
   @@index([customerId])
   @@map("store_credit_transactions")
+}
+
+// ---------- Returns & exchanges ----------
+
+enum ReturnType {
+  RETURN
+  EXCHANGE
+}
+
+enum ReturnStatus {
+  REQUESTED
+  REJECTED
+  // Approving a RETURN resolves straight to REFUNDED; approving an EXCHANGE
+  // resolves straight to EXCHANGED. There's no separate "approved, not yet
+  // processed" state — a decision and its stock/refund side effects happen
+  // atomically (see ReturnsService.decide).
+  REFUNDED
+  EXCHANGED
+}
+
+model ReturnRequest {
+  id String @id @default(cuid())
+
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderItemId String
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  type   ReturnType
+  status ReturnStatus @default(REQUESTED)
+  qty    Int
+  reason String
+
+  // Set only for EXCHANGE — the variant the customer wants instead. Stock
+  // isn't reserved until the request is approved.
+  exchangeVariant   ProductVariant? @relation(fields: [exchangeVariantId], references: [id])
+  exchangeVariantId String?
+
+  adminNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([customerId])
+  @@map("return_requests")
 }
 
 // ---------- Marketing automation ----------

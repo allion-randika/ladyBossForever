@@ -38,6 +38,11 @@ export class ProductsController {
     return this.productsService.findBySlug(slug);
   }
 
+  @Get(':id/recommendations')
+  getRecommendations(@Param('id') id: string) {
+    return this.productsService.getRecommendations(id);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('INVENTORY_MANAGER')
   @Post()

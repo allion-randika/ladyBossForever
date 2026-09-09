@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import type { QueryProductsDto } from './dto/query-products.dto';
@@ -58,6 +58,65 @@ export class ProductsService {
       throw new NotFoundException(`Product "${slug}" not found`);
     }
     return product;
+  }
+
+  /**
+   * "Bought together" from real order history, topped up with same-category
+   * products when there isn't enough co-purchase data yet (a new product,
+   * or simply too little order volume so far).
+   */
+  async getRecommendations(productId: string, limit = 4) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, categoryId: true },
+    });
+    if (!product)
+      throw new NotFoundException(`Product "${productId}" not found`);
+
+    const coPurchasedOrderIds = await this.prisma.orderItem.findMany({
+      where: {
+        productId,
+        order: { status: { in: [OrderStatus.PAID, OrderStatus.FULFILLED] } },
+      },
+      select: { orderId: true },
+    });
+
+    const orderIds = coPurchasedOrderIds.map((o) => o.orderId);
+    const ids: string[] = [];
+
+    if (orderIds.length > 0) {
+      const coPurchased = await this.prisma.orderItem.groupBy({
+        by: ['productId'],
+        where: { orderId: { in: orderIds }, productId: { not: productId } },
+        _count: { _all: true },
+        orderBy: { _count: { productId: 'desc' } },
+        take: limit,
+      });
+      ids.push(...coPurchased.map((row) => row.productId));
+    }
+
+    if (ids.length < limit) {
+      const fallback = await this.prisma.product.findMany({
+        where: {
+          categoryId: product.categoryId,
+          id: { notIn: [productId, ...ids] },
+        },
+        select: { id: true },
+        orderBy: [{ isBestseller: 'desc' }, { createdAt: 'desc' }],
+        take: limit - ids.length,
+      });
+      ids.push(...fallback.map((p) => p.id));
+    }
+
+    if (ids.length === 0) return [];
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: ids } },
+      include: { category: true, variants: true },
+    });
+    // Preserve the ranking order — findMany with `in` doesn't guarantee it.
+    const byId = new Map(products.map((p) => [p.id, p]));
+    return ids.map((id) => byId.get(id)).filter((p) => p !== undefined);
   }
 
   async findByIdOrThrow(id: string) {
